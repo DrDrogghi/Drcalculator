@@ -1,0 +1,30 @@
+{
+  "currency": "€",
+  "potions": [
+    { "id": "decotto", "name": "Decotto", "price": 28, "image": "" },
+    { "id": "tisana-vermisia", "name": "Tisana Di Vermisia", "price": 23, "image": "" },
+    { "id": "ampliorespiro-piccola", "name": "Ampliorespiro Piccola", "price": 35, "image": "" },
+    { "id": "distillato-fiacco", "name": "Distillato Fiacco", "price": 28, "image": "" },
+    { "id": "cura-ferite-piccola", "name": "Cura Ferite Piccola", "price": 28, "image": "" },
+    { "id": "cura-ferite-media", "name": "Cura Ferite Media", "price": 73, "image": "" },
+    { "id": "siero-ribollente", "name": "Siero Ribollente", "price": 23, "image": "" },
+    { "id": "siero-acquitrino", "name": "Siero Acquitrino", "price": 23, "image": "" },
+    { "id": "pozione-singhiozzante", "name": "Pozione Singhiozzante", "price": 23, "image": "" },
+    { "id": "pozione-tinteggiante", "name": "Pozione Tinteggiante", "price": 23, "image": "" },
+    { "id": "pozione-tartagliante", "name": "Pozione Tartagliante", "price": 23, "image": "" },
+    { "id": "elisir-euforia", "name": "Elisir Dell'Euforia", "price": 40, "image": "" },
+    { "id": "antidoto-mentale", "name": "Antidoto Mentale", "price": 37, "image": "" },
+    { "id": "tisana-olmo", "name": "Tisana Dell'Olmo", "price": 34, "image": "" },
+    { "id": "infuso-protettivo-piccolo", "name": "Infuso Protettivo Piccolo", "price": 47, "image": "" },
+    { "id": "infuso-protettivo-medio", "name": "Infuso Protettivo Medio", "price": 79, "image": "" },
+    { "id": "soluzione-corroborante-piccola", "name": "Soluzione Corroborante Piccola", "price": 72, "image": "" },
+    { "id": "siero-rugiada", "name": "Siero Rugiada", "price": 42, "image": "" },
+    { "id": "siero-crescita-celestiale", "name": "Siero Crescita Celestiale", "price": 42, "image": "" },
+    { "id": "intruglio-sfocato", "name": "Intruglio Sfocato", "price": 42, "image": "" },
+    { "id": "acqua-vitae", "name": "Acqua Vitae", "price": 37, "image": "" },
+    { "id": "siero-solarverde", "name": "Siero Solarverde", "price": 43, "image": "" },
+    { "id": "balsamo-drago", "name": "Balsamo Del Drago", "price": 49, "image": "" },
+    { "id": "pozione-mana-base", "name": "Pozione Mana Base", "price": 61, "image": "" },
+    { "id": "rimedio-luna-piena", "name": "Rimedio Di Luna Piena", "price": 61, "image": "" }
+  ]
+}

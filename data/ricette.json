@@ -1,0 +1,32 @@
+{
+  "recipes": [
+    {
+      "id": "distillato-fiacco",
+      "name": "Distillato Fiacco",
+      "image": "",
+      "ingredients": "Acqua distillata\nLumaca viva\nFoglia di dittamo\nRametto di lavanda",
+      "procedure": "Schiaccia la lumaca\nPorta l'acqua a 80°\nAggiungi la bava\nAggiungi dittamo tritato\nAggiungi lavanda\nAttendi 5s"
+    },
+    {
+      "id": "cura-ferite-piccola",
+      "name": "Cura Ferite Piccola",
+      "image": "",
+      "ingredients": "Acqua distillata\nEstratto sanguinolento\nZenzero tritato\nBava di lumaca",
+      "procedure": "Acqua distillata\n65°\nBava di lumaca\nEstratto sanguinolento\nZenzero tritato\nAttendi 10s\nEstrai"
+    },
+    {
+      "id": "tisana-vermisia",
+      "name": "Tisana Di Vermisia",
+      "image": "",
+      "ingredients": "Acqua distillata\nInfuso di menta\nInfuso di zenzero",
+      "procedure": "Acqua distillata\n75°\nInfuso di menta\nInfuso di zenzero\nAttendi 5s\nEstrai"
+    },
+    {
+      "id": "decotto",
+      "name": "Decotto",
+      "image": "",
+      "ingredients": "Infuso di rosa\nInfuso di margherita\nOrtica intera\nAcqua distillata",
+      "procedure": "Acqua distillata\n90°\nInfuso di rosa\nInfuso di margherita\nOrtica\nAttendi 10s\nEstrai"
+    }
+  ]
+}
