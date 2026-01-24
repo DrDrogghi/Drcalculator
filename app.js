@@ -176,6 +176,49 @@
     return window.confirm(message);
   }
 
+    function cartSummary() {
+    if (!(state.mode === "buy" || state.mode === "sell")) return { count: 0, total: 0, currency: "€" };
+
+    const potMap = new Map((state.potionsData.potions || []).map((p) => [p.id, p]));
+    let total = 0;
+    let count = 0;
+
+    for (const [pid, qtyRaw] of Object.entries(state.cart || {})) {
+      const qty = safeInt(qtyRaw, 0);
+      const p = potMap.get(pid);
+      if (!p || qty <= 0) continue;
+      count += qty;
+      total += safeInt(p.price, 0) * qty;
+    }
+
+    return { count, total, currency: state.potionsData.currency || "€" };
+  }
+
+  function renderQuickCartBar() {
+    // visibile SOLO in buy/sell e SOLO se carrello non vuoto
+    if (!(state.mode === "buy" || state.mode === "sell")) return null;
+
+    const { count, total, currency } = cartSummary();
+    if (count <= 0) return null;
+
+    const btn = el(
+      "button",
+      {
+        class: "quickbar-btn",
+        onclick: () => sendToDiscord(btn),
+      },
+      "Invia embed"
+    );
+
+    return el(
+      "div",
+      { class: "quickbar" },
+      el("div", { class: "quickbar-total" }, `Totale carrello: ${total}${currency}`),
+      btn
+    );
+  }
+
+
   // -----------------------------
   // Render
   // -----------------------------
@@ -214,6 +257,8 @@
             "Home"
           );
 
+          
+
     const modeLabel =
       state.mode === "buy"
         ? "Modalità: ACQUISTA"
@@ -224,6 +269,16 @@
             : "";
 
     const rightControls = el("div", { class: "top-right" });
+
+    const quick = renderQuickCartBar();
+
+    return el(
+      "div",
+      { class: "topwrap" },
+      top,
+      quick ? quick : null
+    );
+
 
     if (state.mode === "buy" || state.mode === "sell") {
       rightControls.appendChild(el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false) }, "Ricarica"));
@@ -1049,6 +1104,41 @@
       body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:#fff; }
       .shell{ min-height:100vh; display:flex; flex-direction:column; }
       .topbar{ position:sticky; top:0; z-index:5; display:flex; gap:10px; align-items:center; padding:12px 14px; background:rgba(11,11,11,.92); border-bottom:1px solid var(--line); backdrop-filter: blur(8px);}
+            .topwrap{ position:sticky; top:0; z-index:6; }
+
+      .quickbar{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        padding:8px 12px;
+        background:var(--gold);
+        color:var(--bg);
+        border-bottom:1px solid rgba(0,0,0,.25);
+      }
+
+      .quickbar-total{
+        font-weight:1000;
+        font-size:13px;
+        letter-spacing:.2px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      .quickbar-btn{
+        border:0;
+        border-radius:10px;
+        padding:8px 12px;
+        font-weight:1000;
+        font-size:13px;
+        cursor:pointer;
+        background:rgba(0,0,0,.14);
+        color:var(--bg);
+      }
+      .quickbar-btn:hover{ background:rgba(0,0,0,.22); }
+      .quickbar-btn:disabled{ opacity:.65; cursor:not-allowed; }
+
       .top-left, .top-right{ display:flex; gap:10px; align-items:center; }
       .top-center{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
       .brand{ font-weight:800; color:var(--gold); font-size:18px; letter-spacing:.3px; }
