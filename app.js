@@ -177,6 +177,47 @@
   }
 
   // -----------------------------
+  // Quick cart bar (tendina gialla in alto)
+  // -----------------------------
+  function cartSummary() {
+    if (!(state.mode === "buy" || state.mode === "sell")) return { count: 0, total: 0, currency: "€" };
+
+    const potMap = new Map((state.potionsData.potions || []).map((p) => [p.id, p]));
+    let total = 0;
+    let count = 0;
+
+    for (const [pid, qtyRaw] of Object.entries(state.cart || {})) {
+      const qty = safeInt(qtyRaw, 0);
+      const p = potMap.get(pid);
+      if (!p || qty <= 0) continue;
+      count += qty;
+      total += safeInt(p.price, 0) * qty;
+    }
+
+    return { count, total, currency: state.potionsData.currency || "€" };
+  }
+
+  function renderQuickCartBar() {
+    // visibile SOLO in buy/sell e SOLO se carrello non vuoto
+    if (!(state.mode === "buy" || state.mode === "sell")) return null;
+
+    const { count, total, currency } = cartSummary();
+    if (count <= 0) return null;
+
+    // IMPORTANT: non possiamo referenziare "btn" dentro il suo initializer (TDZ),
+    // quindi creiamo il bottone e poi agganciamo l'handler.
+    const btn = el("button", { class: "quickbar-btn", type: "button" }, "Invia embed");
+    btn.addEventListener("click", () => sendToDiscord(btn));
+
+    return el(
+      "div",
+      { class: "quickbar" },
+      el("div", { class: "quickbar-total" }, `Totale carrello: ${total}${currency}`),
+      btn
+    );
+  }
+
+  // -----------------------------
   // Render
   // -----------------------------
   function render() {
@@ -210,6 +251,7 @@
               class: "btn btn-ghost",
               onclick: () => goHome(),
               title: "Home",
+              type: "button",
             },
             "Home"
           );
@@ -218,18 +260,18 @@
       state.mode === "buy"
         ? "Modalità: ACQUISTA"
         : state.mode === "sell"
-          ? "Modalità: VENDI"
-          : state.mode === "recipes"
-            ? "Modalità: RICETTE"
-            : "";
+        ? "Modalità: VENDI"
+        : state.mode === "recipes"
+        ? "Modalità: RICETTE"
+        : "";
 
     const rightControls = el("div", { class: "top-right" });
 
     if (state.mode === "buy" || state.mode === "sell") {
-      rightControls.appendChild(el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false) }, "Ricarica"));
-      rightControls.appendChild(el("button", { class: "btn btn-gold", onclick: () => openManagePotions() }, "Gestisci pozioni"));
+      rightControls.appendChild(el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false), type: "button" }, "Ricarica"));
+      rightControls.appendChild(el("button", { class: "btn btn-gold", onclick: () => openManagePotions(), type: "button" }, "Gestisci pozioni"));
       rightControls.appendChild(
-        el("button", { class: "btn btn-ghost btn-square", onclick: () => toggleDrawer(true), title: "Carrello" }, "☰")
+        el("button", { class: "btn btn-ghost btn-square", onclick: () => toggleDrawer(true), title: "Carrello", type: "button" }, "☰")
       );
     } else if (state.mode === "recipes") {
       rightControls.appendChild(
@@ -248,16 +290,20 @@
           el("span", {}, "Selezione multipla")
         )
       );
-      rightControls.appendChild(el("button", { class: "btn btn-gold", onclick: () => openManageRecipes() }, "Gestisci ricette"));
+      rightControls.appendChild(el("button", { class: "btn btn-gold", onclick: () => openManageRecipes(), type: "button" }, "Gestisci ricette"));
     }
 
-    return el(
+    const top = el(
       "div",
       { class: "topbar" },
       el("div", { class: "top-left" }, leftBtn),
       el("div", { class: "top-center" }, title, modeLabel ? el("div", { class: "mode" }, modeLabel) : null),
       rightControls
     );
+
+    const quick = renderQuickCartBar();
+
+    return el("div", { class: "topwrap" }, top, quick ? quick : null);
   }
 
   function renderBody() {
@@ -278,9 +324,9 @@
         el(
           "div",
           { class: "home-actions" },
-          el("button", { class: "btn btn-gold btn-big", onclick: () => startMode("buy") }, "ACQUISTA"),
-          el("button", { class: "btn btn-ghost btn-big", onclick: () => startMode("recipes") }, "RICETTE"),
-          el("button", { class: "btn btn-ghost btn-big", onclick: () => startMode("sell") }, "VENDI")
+          el("button", { class: "btn btn-gold btn-big", onclick: () => startMode("buy"), type: "button" }, "ACQUISTA"),
+          el("button", { class: "btn btn-ghost btn-big", onclick: () => startMode("recipes"), type: "button" }, "RICETTE"),
+          el("button", { class: "btn btn-ghost btn-big", onclick: () => startMode("sell"), type: "button" }, "VENDI")
         )
       )
     );
@@ -347,6 +393,7 @@
       "button",
       {
         class: "btn btn-ghost",
+        type: "button",
         onclick: () => {
           const n = Math.max(0, safeInt(input.value, 0) - 1);
           input.value = String(n);
@@ -359,6 +406,7 @@
       "button",
       {
         class: "btn btn-ghost",
+        type: "button",
         onclick: () => {
           const n = Math.min(9999, safeInt(input.value, 0) + 1);
           input.value = String(n);
@@ -367,18 +415,19 @@
       "+"
     );
 
-    const cancelBtn = el("button", { class: "btn btn-ghost", onclick: () => wrap.classList.remove("open") }, "✕");
+    const cancelBtn = el("button", { class: "btn btn-ghost", type: "button", onclick: () => wrap.classList.remove("open") }, "✕");
     const okBtn = el(
       "button",
       {
         class: "btn btn-gold",
+        type: "button",
         onclick: () => {
           const n = safeInt(input.value, 0);
           if (n <= 0) delete state.cart[potionId];
           else state.cart[potionId] = n;
           wrap.classList.remove("open");
           refreshDrawerTotals();
-          render();
+          render(); // aggiorna badge + quickbar
         },
       },
       "✓"
@@ -450,7 +499,7 @@
       "div",
       { class: "drawer-header" },
       el("div", { class: "drawer-title" }, "Carrello"),
-      el("button", { class: "btn btn-ghost btn-square", onclick: () => toggleDrawer(false) }, "×")
+      el("button", { class: "btn btn-ghost btn-square", type: "button", onclick: () => toggleDrawer(false) }, "×")
     );
 
     const actorInput = el("input", {
@@ -467,19 +516,17 @@
       oninput: (e) => (state.settings.webhook_url = e.target.value),
     });
 
-    const saveBtn = el("button", { class: "btn btn-ghost", onclick: () => saveSettingsNow() }, "Salva");
+    const saveBtn = el("button", { class: "btn btn-ghost", type: "button", onclick: () => saveSettingsNow() }, "Salva");
 
     const list = el("div", { class: "cart-list" });
     const totalLine = el("div", { class: "total" }, "Totale: 0€");
 
-    const sendBtn = el("button", { class: "btn btn-gold", onclick: () => sendToDiscord(sendBtn) }, "Invia su Discord (Embed)");
-    const clearBtn = el("button", { class: "btn btn-ghost", onclick: () => clearCart() }, "Svuota carrello");
+    const sendBtn = el("button", { class: "btn btn-gold", type: "button", onclick: () => sendToDiscord(sendBtn) }, "Invia su Discord (Embed)");
+    const clearBtn = el("button", { class: "btn btn-ghost", type: "button", onclick: () => clearCart() }, "Svuota carrello");
 
     drawer.appendChild(header);
     drawer.appendChild(el("div", { class: "drawer-block" }, el("div", { class: "label" }, "Operatore"), actorInput));
-    drawer.appendChild(
-      el("div", { class: "drawer-block" }, el("div", { class: "label" }, "Webhook Discord (Canale)"), webhookInput, saveBtn)
-    );
+    drawer.appendChild(el("div", { class: "drawer-block" }, el("div", { class: "label" }, "Webhook Discord (Canale)"), webhookInput, saveBtn));
     drawer.appendChild(el("div", { class: "drawer-block" }, el("div", { class: "label" }, "Riepilogo"), list, totalLine));
     drawer.appendChild(el("div", { class: "drawer-block" }, sendBtn, clearBtn));
 
@@ -603,6 +650,7 @@
   function clearCart() {
     if (!(state.mode === "buy" || state.mode === "sell")) return;
     state.cart = {};
+    state.drawerOpen = false;
     render();
   }
 
@@ -775,6 +823,7 @@
           "button",
           {
             class: `mgr-row ${selectedId === p.id ? "active" : ""}`,
+            type: "button",
             onclick: () => {
               selectedId = p.id;
               nameInput.value = p.name;
@@ -830,14 +879,15 @@
     const buttons = el(
       "div",
       { class: "mgr-buttons" },
-      el("button", { class: "btn btn-ghost", onclick: () => clearForm() }, "Nuova"),
-      el("button", { class: "btn btn-gold", onclick: () => saveOne() }, "Salva"),
-      el("button", { class: "btn btn-ghost", onclick: () => deleteOne() }, "Elimina"),
+      el("button", { class: "btn btn-ghost", type: "button", onclick: () => clearForm() }, "Nuova"),
+      el("button", { class: "btn btn-gold", type: "button", onclick: () => saveOne() }, "Salva"),
+      el("button", { class: "btn btn-ghost", type: "button", onclick: () => deleteOne() }, "Elimina"),
       el("div", { class: "spacer" }),
       el(
         "button",
         {
           class: "btn btn-gold",
+          type: "button",
           onclick: () => {
             const cur = (currencyInput.value || "€").trim() || "€";
             const cleaned = potions
@@ -875,13 +925,16 @@
     const data = clone(state.recipesData);
     const recipes = [...(data.recipes || [])].sort((a, b) => a.name.localeCompare(b.name, "it"));
 
-    const modal = createModal("Gestione Ricette", renderRecipesManager(recipes, (updatedRecipes) => {
-      state.recipesData.recipes = updatedRecipes;
-      saveJSON(LS_KEYS.RECIPES, state.recipesData);
-      toast("Ricette salvate ✅", "ok");
-      closeModal(modal);
-      render();
-    }));
+    const modal = createModal(
+      "Gestione Ricette",
+      renderRecipesManager(recipes, (updatedRecipes) => {
+        state.recipesData.recipes = updatedRecipes;
+        saveJSON(LS_KEYS.RECIPES, state.recipesData);
+        toast("Ricette salvate ✅", "ok");
+        closeModal(modal);
+        render();
+      })
+    );
 
     document.body.appendChild(modal);
   }
@@ -899,13 +952,7 @@
 
     function redrawList() {
       clear(list);
-      const header = el(
-        "div",
-        { class: "mgr-row mgr-head" },
-        el("div", {}, "Nome"),
-        el("div", {}, "Immagine"),
-        el("div", {}, "ID")
-      );
+      const header = el("div", { class: "mgr-row mgr-head" }, el("div", {}, "Nome"), el("div", {}, "Immagine"), el("div", {}, "ID"));
       list.appendChild(header);
 
       for (const r of recipes.sort((a, b) => a.name.localeCompare(b.name, "it"))) {
@@ -913,6 +960,7 @@
           "button",
           {
             class: `mgr-row ${selectedId === r.id ? "active" : ""}`,
+            type: "button",
             onclick: () => {
               selectedId = r.id;
               nameInput.value = r.name || "";
@@ -971,14 +1019,15 @@
     const buttons = el(
       "div",
       { class: "mgr-buttons" },
-      el("button", { class: "btn btn-ghost", onclick: () => clearForm() }, "Nuova"),
-      el("button", { class: "btn btn-gold", onclick: () => saveOne() }, "Salva"),
-      el("button", { class: "btn btn-ghost", onclick: () => deleteOne() }, "Elimina"),
+      el("button", { class: "btn btn-ghost", type: "button", onclick: () => clearForm() }, "Nuova"),
+      el("button", { class: "btn btn-gold", type: "button", onclick: () => saveOne() }, "Salva"),
+      el("button", { class: "btn btn-ghost", type: "button", onclick: () => deleteOne() }, "Elimina"),
       el("div", { class: "spacer" }),
       el(
         "button",
         {
           class: "btn btn-gold",
+          type: "button",
           onclick: () => {
             const cleaned = recipes
               .map((r) => ({
@@ -1010,7 +1059,7 @@
     return el("div", { class: "mgr" }, list, form);
   }
 
-  // -----------------------------
+    // -----------------------------
   // Modal helpers + Styles injection
   // -----------------------------
   function createModal(title, contentNode) {
@@ -1048,11 +1097,56 @@
       *{ box-sizing:border-box; }
       body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:#fff; }
       .shell{ min-height:100vh; display:flex; flex-direction:column; }
-      .topbar{ position:sticky; top:0; z-index:5; display:flex; gap:10px; align-items:center; padding:12px 14px; background:rgba(11,11,11,.92); border-bottom:1px solid var(--line); backdrop-filter: blur(8px);}
+
+      /* TOP + QUICKBAR WRAP */
+      .topwrap{ position:sticky; top:0; z-index:6; }
+
+      .topbar{
+        position:sticky; top:0; z-index:5;
+        display:flex; gap:10px; align-items:center;
+        padding:12px 14px;
+        background:rgba(11,11,11,.92);
+        border-bottom:1px solid var(--line);
+        backdrop-filter: blur(8px);
+      }
+
+      /* QUICK CART BAR (solo se carrello non vuoto) */
+      .quickbar{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        padding:8px 12px;
+        background:var(--gold);
+        color:var(--bg);
+        border-bottom:1px solid rgba(0,0,0,.25);
+      }
+      .quickbar-total{
+        font-weight:1000;
+        font-size:13px;
+        letter-spacing:.2px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .quickbar-btn{
+        border:0;
+        border-radius:10px;
+        padding:8px 12px;
+        font-weight:1000;
+        font-size:13px;
+        cursor:pointer;
+        background:rgba(0,0,0,.14);
+        color:var(--bg);
+      }
+      .quickbar-btn:hover{ background:rgba(0,0,0,.22); }
+      .quickbar-btn:disabled{ opacity:.65; cursor:not-allowed; }
+
       .top-left, .top-right{ display:flex; gap:10px; align-items:center; }
       .top-center{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
       .brand{ font-weight:800; color:var(--gold); font-size:18px; letter-spacing:.3px; }
       .mode{ font-size:12px; color:var(--muted); font-weight:700; }
+
       .page{ padding:14px; }
       .home{ flex:1; display:flex; align-items:center; justify-content:center; padding:18px; }
       .home-card{ width:min(560px, 100%); background:var(--card); border:2px solid var(--gold); border-radius:16px; padding:18px; }
@@ -1084,20 +1178,27 @@
       .btn-gold:hover{ filter:brightness(1.05); }
       .btn-big{ padding:16px 14px; font-size:16px; }
       .btn-square{ width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; padding:0; border-radius:12px; }
+
       .empty{ color:var(--muted); font-weight:700; padding:18px; text-align:center; background:var(--card); border:1px solid var(--line); border-radius:14px; }
       .muted{ color:var(--muted); }
 
       .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); opacity:0; pointer-events:none; transition:opacity .18s ease; z-index:9; }
       .overlay.open{ opacity:1; pointer-events:auto; }
 
-      .drawer{ position:fixed; top:0; right:-420px; width:min(420px, 92vw); height:100vh; background:#0a0a0a; border-left:2px solid var(--gold); z-index:10;
-               transition:right .18s ease; padding:14px; overflow:auto; }
+      .drawer{
+        position:fixed; top:0; right:-420px;
+        width:min(420px, 92vw); height:100vh;
+        background:#0a0a0a; border-left:2px solid var(--gold);
+        z-index:10; transition:right .18s ease;
+        padding:14px; overflow:auto;
+      }
       .drawer.open{ right:0; }
       .drawer-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
       .drawer-title{ color:var(--gold); font-weight:900; font-size:18px; }
       .drawer-block{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
       .label{ color:var(--muted); font-weight:800; font-size:12px; margin-bottom:8px; }
       .input{ width:100%; border-radius:12px; border:1px solid var(--line); background:#0e0e0e; color:#fff; padding:10px 12px; font-weight:700; outline:none; }
+
       .cart-list{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
       .cart-row{ display:grid; grid-template-columns: 1fr auto auto; gap:10px; background:#0e0e0e; border:1px solid var(--line); border-radius:12px; padding:10px; }
       .cart-name{ font-weight:800; }
@@ -1108,17 +1209,25 @@
       .toggle{ display:flex; align-items:center; gap:8px; font-weight:800; color:var(--gold); background:var(--btn); padding:10px 12px; border-radius:12px; }
       .toggle input{ accent-color: var(--gold); }
 
-      .toast{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%) translateY(10px);
-              opacity:0; transition: all .2s ease; z-index:999; padding:10px 12px; border-radius:12px; font-weight:900;
-              background:#111; border:1px solid var(--line); color:#fff; }
+      .toast{
+        position:fixed; left:50%; bottom:18px;
+        transform:translateX(-50%) translateY(10px);
+        opacity:0; transition: all .2s ease; z-index:999;
+        padding:10px 12px; border-radius:12px; font-weight:900;
+        background:#111; border:1px solid var(--line); color:#fff;
+      }
       .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
       .toast-ok{ border-color: rgba(212,175,55,.6); }
       .toast-error{ border-color: rgba(255,179,179,.6); }
 
       .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:50; display:flex; align-items:center; justify-content:center; padding:16px; }
       .modal{ width:min(980px, 100%); max-height:90vh; overflow:auto; background:var(--bg); border:2px solid var(--gold); border-radius:16px; }
-      .modal-header{ position:sticky; top:0; background:rgba(11,11,11,.92); backdrop-filter: blur(8px); border-bottom:1px solid var(--line);
-                     padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+      .modal-header{
+        position:sticky; top:0;
+        background:rgba(11,11,11,.92); backdrop-filter: blur(8px);
+        border-bottom:1px solid var(--line);
+        padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px;
+      }
       .modal-title{ font-weight:900; color:var(--gold); }
       .modal-body{ padding:14px; }
 
@@ -1141,7 +1250,7 @@
     style.textContent = css;
     document.head.appendChild(style);
   }
-  
+
   // -----------------------------
   // Auto-import da /data (solo se LS vuoto)
   // -----------------------------
@@ -1158,7 +1267,6 @@
 
     if (hasSomething) return false;
 
-    // Prova a leggere i file dalla cartella /data
     const files = [
       { url: "data/potions_acquisto.json", key: LS_KEYS.POTIONS_BUY, type: "potions" },
       { url: "data/potions_vendita.json", key: LS_KEYS.POTIONS_SELL, type: "potions" },
@@ -1175,7 +1283,6 @@
         if (!res.ok) continue;
         const json = await res.json();
 
-        // Validazione minima + pulizia, coerente con la tua app
         if (f.type === "potions") {
           if (!json || typeof json !== "object") continue;
           const currency = (json.currency || "€").toString();
@@ -1224,8 +1331,8 @@
           saveJSON(f.key, cleaned);
           importedAny = true;
         }
-      } catch (e) {
-        // se un file manca o non è valido, semplicemente lo saltiamo
+      } catch {
+        // skip
       }
     }
 
@@ -1235,9 +1342,7 @@
   // Boot
   (async () => {
     const imported = await tryAutoImportFromDataFolder();
-    if (imported) {
-      toast("Dati importati da /data ✅", "ok");
-    }
+    if (imported) toast("Dati importati da /data ✅", "ok");
     render();
   })();
-})();
+})(); 
