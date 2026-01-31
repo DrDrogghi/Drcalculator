@@ -3,7 +3,7 @@
    - CRUD pozioni (acquisto/vendita) + CRUD ricette
    - Carrello + invio embed via Discord Webhook
    - Salvataggio su localStorage (JSON)
-   - Immagini: solo nome/path testuale (non caricate)
+   - Immagini: path testuale (caricate come <img>)
 */
 
 (() => {
@@ -51,14 +51,14 @@
     return Number.isFinite(n) ? n : fallback;
   };
 
+  // Risolve path immagini per GitHub Pages (repo su sottocartella)
   function resolveAsset(path) {
-  const p = String(path || "").trim();
-  if (!p) return "";
-  if (/^https?:\/\//i.test(p)) return p; // lascia URL esterni
-  // costruisce il path relativo alla cartella dell'app (ok per GH Pages)
-  return new URL(p, document.baseURI).toString();
-  };
-
+    const p = String(path || "").trim();
+    if (!p) return "";
+    if (/^https?:\/\//i.test(p)) return p; // URL esterni
+    // Importante: usare document.baseURI per gestire /nome-repo/
+    return new URL(p, document.baseURI).toString();
+  }
 
   // -----------------------------
   // Storage
@@ -145,9 +145,7 @@
   // DOM + Styles
   // -----------------------------
   const root = document.getElementById("app");
-  if (!root) {
-    throw new Error("Manca <div id='app'></div> in index.html");
-  }
+  if (!root) throw new Error("Manca <div id='app'></div> in index.html");
 
   injectStyles();
 
@@ -207,14 +205,11 @@
   }
 
   function renderQuickCartBar() {
-    // visibile SOLO in buy/sell e SOLO se carrello non vuoto
     if (!(state.mode === "buy" || state.mode === "sell")) return null;
 
     const { count, total, currency } = cartSummary();
     if (count <= 0) return null;
 
-    // IMPORTANT: non possiamo referenziare "btn" dentro il suo initializer (TDZ),
-    // quindi creiamo il bottone e poi agganciamo l'handler.
     const btn = el("button", { class: "quickbar-btn", type: "button" }, "Invia embed");
     btn.addEventListener("click", () => sendToDiscord(btn));
 
@@ -311,7 +306,6 @@
     );
 
     const quick = renderQuickCartBar();
-
     return el("div", { class: "topwrap" }, top, quick ? quick : null);
   }
 
@@ -359,6 +353,8 @@
       const qty = state.cart[p.id] || 0;
 
       const qtyBadge = el("div", { class: "badge" }, qty > 0 ? `x${qty}` : "");
+
+      // Immagine (se presente)
       const imgNode = p.image
         ? el("img", {
             class: "card-img",
@@ -366,11 +362,11 @@
             alt: p.name,
             loading: "lazy",
             onerror: (e) => {
+              // nasconde l'immagine se il file non esiste / path errato
               e.target.style.display = "none";
             },
           })
         : null;
-
 
       const stepper = renderQtyEditor(p.id);
 
@@ -385,8 +381,7 @@
         },
         el("div", { class: "card-title" }, p.name),
         el("div", { class: "card-price" }, `${p.price}${currency}`),
-        el("div", { class: "card-price" }, `${p.price}${currency}`),
-        imgLine,
+        imgNode, // ✅ qui
         qtyBadge,
         stepper
       );
@@ -472,7 +467,16 @@
 
     for (const r of recipes) {
       const open = state.recipeOpen.has(r.id);
-      const imgLine = el("div", { class: "imgline" }, r.image ? `Immagine: ${r.image}` : "Immagine: —");
+
+      const imgNode = r.image
+        ? el("img", {
+            class: "card-img",
+            src: resolveAsset(r.image),
+            alt: r.name,
+            loading: "lazy",
+            onerror: (e) => (e.target.style.display = "none"),
+          })
+        : null;
 
       const details = open
         ? el(
@@ -499,7 +503,7 @@
           },
         },
         el("div", { class: "card-title" }, r.name),
-        imgLine,
+        imgNode, // ✅ qui
         details
       );
 
@@ -509,8 +513,7 @@
     page.appendChild(grid);
     return page;
   }
-
-  // -----------------------------
+     // -----------------------------
   // Drawer (Carrello + impostazioni + invio Discord)
   // -----------------------------
   function renderDrawer() {
@@ -542,7 +545,10 @@
     const list = el("div", { class: "cart-list" });
     const totalLine = el("div", { class: "total" }, "Totale: 0€");
 
-    const sendBtn = el("button", { class: "btn btn-gold", type: "button", onclick: () => sendToDiscord(sendBtn) }, "Invia su Discord (Embed)");
+    // Nota: sendBtn viene usato dentro onclick, quindi lo creiamo prima e poi settiamo handler
+    const sendBtn = el("button", { class: "btn btn-gold", type: "button" }, "Invia su Discord (Embed)");
+    sendBtn.addEventListener("click", () => sendToDiscord(sendBtn));
+
     const clearBtn = el("button", { class: "btn btn-ghost", type: "button", onclick: () => clearCart() }, "Svuota carrello");
 
     drawer.appendChild(header);
@@ -832,7 +838,7 @@
 
     const nameInput = el("input", { class: "input", placeholder: "Nome" });
     const priceInput = el("input", { class: "input", placeholder: "Prezzo (intero)", inputmode: "numeric" });
-    const imageInput = el("input", { class: "input", placeholder: "Immagine (solo nome/path)" });
+    const imageInput = el("input", { class: "input", placeholder: "Immagine (path es: images/pozioni/heal.png)" });
 
     function redrawList() {
       clear(list);
@@ -967,7 +973,7 @@
     const form = el("div", { class: "mgr-form" });
 
     const nameInput = el("input", { class: "input", placeholder: "Nome ricetta" });
-    const imageInput = el("input", { class: "input", placeholder: "Immagine (solo nome/path)" });
+    const imageInput = el("input", { class: "input", placeholder: "Immagine (path es: images/ricette/x.png)" });
     const ingredientsInput = el("textarea", { class: "input", placeholder: "Ingredienti" });
     const procedureInput = el("textarea", { class: "input", placeholder: "Procedimento" });
 
@@ -1080,7 +1086,7 @@
     return el("div", { class: "mgr" }, list, form);
   }
 
-    // -----------------------------
+  // -----------------------------
   // Modal helpers + Styles injection
   // -----------------------------
   function createModal(title, contentNode) {
@@ -1179,6 +1185,7 @@
       .card{ background:var(--card); border:2px solid var(--gold); border-radius:16px; padding:14px; cursor:pointer; }
       .card-title{ font-weight:800; font-size:15px; text-align:center; }
       .card-price{ margin-top:6px; text-align:center; font-weight:900; color:var(--gold); }
+
       .card-img{
         width: 100%;
         height: 120px;
@@ -1187,9 +1194,9 @@
         margin-top: 10px;
         border: 1px solid var(--line);
         background:#0e0e0e;
+        display:block;
       }
 
-      .imgline{ margin-top:8px; font-size:12px; color:var(--muted); text-align:center; }
       .badge{ margin-top:10px; text-align:center; font-weight:900; color:var(--gold); min-height:18px; }
 
       .qty-editor{ margin-top:10px; display:none; border-top:1px solid var(--line); padding-top:10px; }
@@ -1286,7 +1293,6 @@
   // Auto-import da /data (solo se LS vuoto)
   // -----------------------------
   async function tryAutoImportFromDataFolder() {
-    // Se ci sono già dati, NON sovrascrivere
     const buyRaw = localStorage.getItem(LS_KEYS.POTIONS_BUY);
     const sellRaw = localStorage.getItem(LS_KEYS.POTIONS_SELL);
     const recRaw = localStorage.getItem(LS_KEYS.RECIPES);
@@ -1376,4 +1382,4 @@
     if (imported) toast("Dati importati da /data ✅", "ok");
     render();
   })();
-})(); 
+})();
