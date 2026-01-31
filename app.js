@@ -51,6 +51,15 @@
     return Number.isFinite(n) ? n : fallback;
   };
 
+  function resolveAsset(path) {
+  const p = String(path || "").trim();
+  if (!p) return "";
+  if (/^https?:\/\//i.test(p)) return p; // lascia URL esterni
+  // costruisce il path relativo alla cartella dell'app (ok per GH Pages)
+  return new URL(p, document.baseURI).toString();
+  };
+
+
   // -----------------------------
   // Storage
   // -----------------------------
@@ -350,7 +359,18 @@
       const qty = state.cart[p.id] || 0;
 
       const qtyBadge = el("div", { class: "badge" }, qty > 0 ? `x${qty}` : "");
-      const imgLine = el("div", { class: "imgline" }, p.image ? `Immagine: ${p.image}` : "Immagine: —");
+      const imgNode = p.image
+        ? el("img", {
+            class: "card-img",
+            src: resolveAsset(p.image),
+            alt: p.name,
+            loading: "lazy",
+            onerror: (e) => {
+              e.target.style.display = "none";
+            },
+          })
+        : null;
+
 
       const stepper = renderQtyEditor(p.id);
 
@@ -364,6 +384,7 @@
           },
         },
         el("div", { class: "card-title" }, p.name),
+        el("div", { class: "card-price" }, `${p.price}${currency}`),
         el("div", { class: "card-price" }, `${p.price}${currency}`),
         imgLine,
         qtyBadge,
@@ -1158,6 +1179,16 @@
       .card{ background:var(--card); border:2px solid var(--gold); border-radius:16px; padding:14px; cursor:pointer; }
       .card-title{ font-weight:800; font-size:15px; text-align:center; }
       .card-price{ margin-top:6px; text-align:center; font-weight:900; color:var(--gold); }
+      .card-img{
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 12px;
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        background:#0e0e0e;
+      }
+
       .imgline{ margin-top:8px; font-size:12px; color:var(--muted); text-align:center; }
       .badge{ margin-top:10px; text-align:center; font-weight:900; color:var(--gold); min-height:18px; }
 
