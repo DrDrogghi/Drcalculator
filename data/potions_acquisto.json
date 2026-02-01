@@ -5,6 +5,7 @@
     { "id": "tisana-vermisia", "name": "Tisana Di Vermisia", "price": 23, "image": "" },
     { "id": "ampliorespiro-piccola", "name": "Ampliorespiro Piccola", "price": 35, "image": "" },
     { "id": "distillato-fiacco", "name": "Distillato Fiacco", "price": 28, "image": "" },
+    { "id": "distillato-morte", "name": "Distillato Morte Vivente", "price": 150, "image": "" },
     { "id": "cura-ferite-piccola", "name": "Cura Ferite Piccola", "price": 28, "image": "" },
     { "id": "cura-ferite-media", "name": "Cura Ferite Media", "price": 73, "image": "" },
     { "id": "siero-ribollente", "name": "Siero Ribollente", "price": 23, "image": "" },
@@ -29,6 +30,7 @@
   ]
 
 }
+
 
 
 
