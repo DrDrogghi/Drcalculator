@@ -230,6 +230,24 @@
     const appShell = el("div", { class: "shell" }, renderTopBar(), renderBody());
     root.appendChild(appShell);
 
+    rightControls.appendChild(
+      el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false) }, "Ricarica")
+    );
+
+    rightControls.appendChild(
+      el(
+        "button",
+        {
+          class: "btn btn-ghost",
+          onclick: () => forceReloadFromDataFolder(),
+          title: "Ricarica prezzi e ricette dai file online",
+        },
+        "Ricarica da /data"
+      )
+    );
+
+
+
     const overlay = el("div", {
       class: `overlay ${state.drawerOpen ? "open" : ""}`,
       onclick: () => {
@@ -1384,6 +1402,34 @@
 
     return importedAny;
   }
+
+  async function forceReloadFromDataFolder() {
+    // cancella tutto
+    localStorage.removeItem(LS_KEYS.POTIONS_BUY);
+    localStorage.removeItem(LS_KEYS.POTIONS_SELL);
+    localStorage.removeItem(LS_KEYS.SETTINGS_BUY);
+    localStorage.removeItem(LS_KEYS.SETTINGS_SELL);
+    localStorage.removeItem(LS_KEYS.RECIPES);
+
+    const imported = await tryAutoImportFromDataFolder();
+
+    if (imported) {
+      toast("Dati ricaricati da /data ✅", "ok");
+    } else {
+      toast("Nessun dato trovato in /data", "error");
+    }
+
+    // ricarica lo stato corrente
+    if (state.mode === "buy" || state.mode === "sell") {
+      reloadMode(true);
+    } else if (state.mode === "recipes") {
+      state.recipesData = loadRecipes();
+      render();
+    } else {
+      render();
+    }
+  }
+
 
   // Boot
   (async () => {
