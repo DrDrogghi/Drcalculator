@@ -1,7 +1,7 @@
 {
   "currency": "€",
   "potions": [
-    { "id": "decotto", "name": "Decotto", "price": 28, "image": "images/pozioni/decotto.png" },
+    { "id": "decotto", "name": "Decotto", "price": 28, "image": "https://github.com/DrDrogghi/Drcalculator/blob/main/images/pozioni/corroborantePicc.png" },
     { "id": "tisana-vermisia", "name": "Tisana Di Vermisia", "price": 23, "image": "" },
     { "id": "ampliorespiro-piccola", "name": "Ampliorespiro Piccola", "price": 35, "image": "" },
     { "id": "distillato-fiacco", "name": "Distillato Fiacco", "price": 28, "image": "" },
@@ -29,6 +29,7 @@
   ]
 
 }
+
 
 
 
