@@ -3,14 +3,14 @@
    - CRUD pozioni (acquisto/vendita) + CRUD ricette
    - Carrello + invio embed via Discord Webhook
    - Salvataggio su localStorage (JSON)
-   - Immagini: path testuale (caricate come <img>)
+   - Immagini: path testuale (mostrate se il file esiste)
 */
 
 (() => {
   "use strict";
 
   // -----------------------------
-  // Keys localStorage (separati come desktop)
+  // Keys localStorage
   // -----------------------------
   const LS_KEYS = {
     POTIONS_BUY: "drcalc_potions_acquisto",
@@ -51,13 +51,12 @@
     return Number.isFinite(n) ? n : fallback;
   };
 
-  // Risolve path immagini per GitHub Pages (repo su sottocartella)
+  // Converte path relativo in URL assoluto compatibile con GitHub Pages (anche se sei in /repo/)
   function resolveAsset(path) {
     const p = String(path || "").trim();
     if (!p) return "";
-    if (/^https?:\/\//i.test(p)) return p; // URL esterni
-    // Importante: usare document.baseURI per gestire /nome-repo/
-    return new URL(p, document.baseURI).toString();
+    if (/^https?:\/\//i.test(p)) return p; // URL esterni ok
+    return new URL(p, document.baseURI).toString(); // relativo alla pagina corrente
   }
 
   // -----------------------------
@@ -111,6 +110,7 @@
   function loadRecipes() {
     const data = loadJSON(LS_KEYS.RECIPES, DEFAULT_RECIPES);
     if (!Array.isArray(data.recipes)) data.recipes = [];
+
     data.recipes = data.recipes
       .filter((r) => r && typeof r === "object")
       .map((r) => ({
@@ -184,7 +184,7 @@
   }
 
   // -----------------------------
-  // Quick cart bar (tendina gialla in alto)
+  // Quick cart bar
   // -----------------------------
   function cartSummary() {
     if (!(state.mode === "buy" || state.mode === "sell")) return { count: 0, total: 0, currency: "€" };
@@ -351,10 +351,8 @@
 
     for (const p of potions) {
       const qty = state.cart[p.id] || 0;
-
       const qtyBadge = el("div", { class: "badge" }, qty > 0 ? `x${qty}` : "");
 
-      // Immagine (se presente)
       const imgNode = p.image
         ? el("img", {
             class: "card-img",
@@ -362,7 +360,6 @@
             alt: p.name,
             loading: "lazy",
             onerror: (e) => {
-              // nasconde l'immagine se il file non esiste / path errato
               e.target.style.display = "none";
             },
           })
@@ -381,7 +378,7 @@
         },
         el("div", { class: "card-title" }, p.name),
         el("div", { class: "card-price" }, `${p.price}${currency}`),
-        imgNode, // ✅ qui
+        imgNode,
         qtyBadge,
         stepper
       );
@@ -395,6 +392,7 @@
 
   function renderQtyEditor(potionId) {
     const wrap = el("div", { class: "qty-editor" });
+
     const input = el("input", {
       class: "qty-input",
       inputmode: "numeric",
@@ -432,6 +430,7 @@
     );
 
     const cancelBtn = el("button", { class: "btn btn-ghost", type: "button", onclick: () => wrap.classList.remove("open") }, "✕");
+
     const okBtn = el(
       "button",
       {
@@ -443,7 +442,7 @@
           else state.cart[potionId] = n;
           wrap.classList.remove("open");
           refreshDrawerTotals();
-          render(); // aggiorna badge + quickbar
+          render();
         },
       },
       "✓"
@@ -474,7 +473,9 @@
             src: resolveAsset(r.image),
             alt: r.name,
             loading: "lazy",
-            onerror: (e) => (e.target.style.display = "none"),
+            onerror: (e) => {
+              e.target.style.display = "none";
+            },
           })
         : null;
 
@@ -503,7 +504,7 @@
           },
         },
         el("div", { class: "card-title" }, r.name),
-        imgNode, // ✅ qui
+        imgNode,
         details
       );
 
@@ -513,7 +514,9 @@
     page.appendChild(grid);
     return page;
   }
-     // -----------------------------
+
+  // --- PARTE 2/2 CONTINUA DA QUI ---
+    // -----------------------------
   // Drawer (Carrello + impostazioni + invio Discord)
   // -----------------------------
   function renderDrawer() {
@@ -545,7 +548,7 @@
     const list = el("div", { class: "cart-list" });
     const totalLine = el("div", { class: "total" }, "Totale: 0€");
 
-    // Nota: sendBtn viene usato dentro onclick, quindi lo creiamo prima e poi settiamo handler
+    // NB: qui NON possiamo usare sendBtn dentro l'onclick prima di dichiararlo
     const sendBtn = el("button", { class: "btn btn-gold", type: "button" }, "Invia su Discord (Embed)");
     sendBtn.addEventListener("click", () => sendToDiscord(sendBtn));
 
@@ -571,7 +574,7 @@
     }
 
     const potMap = new Map((state.potionsData.potions || []).map((p) => [p.id, p]));
-    const items = Object.entries(state.cart)
+    const items = Object.entries(state.cart || {})
       .map(([pid, qty]) => ({ pid, qty: safeInt(qty, 0) }))
       .filter((x) => x.qty > 0 && potMap.has(x.pid))
       .map((x) => ({ ...x, potion: potMap.get(x.pid) }))
@@ -727,7 +730,7 @@
 
   function buildEmbedPayloads() {
     const potMap = new Map((state.potionsData.potions || []).map((p) => [p.id, p]));
-    const items = Object.entries(state.cart)
+    const items = Object.entries(state.cart || {})
       .map(([pid, qty]) => ({ pid, qty: safeInt(qty, 0) }))
       .filter((x) => x.qty > 0 && potMap.has(x.pid))
       .map((x) => ({ ...x, potion: potMap.get(x.pid) }))
@@ -749,7 +752,7 @@
             {
               title: `🧾 Riepilogo ${modeLabel}`,
               description: desc,
-              color: 0xD4AF37,
+              color: 0xd4af37,
             },
           ],
         },
@@ -784,7 +787,7 @@
       const embed = {
         title: `🧾 Riepilogo ${modeLabel}` + (chunks.length > 1 ? ` (Parte ${i + 1}/${chunks.length})` : ""),
         description: baseDesc,
-        color: 0xD4AF37,
+        color: 0xd4af37,
         fields: chunks[i],
       };
 
@@ -838,7 +841,7 @@
 
     const nameInput = el("input", { class: "input", placeholder: "Nome" });
     const priceInput = el("input", { class: "input", placeholder: "Prezzo (intero)", inputmode: "numeric" });
-    const imageInput = el("input", { class: "input", placeholder: "Immagine (path es: images/pozioni/heal.png)" });
+    const imageInput = el("input", { class: "input", placeholder: "Immagine (es: images/pozione.png)" });
 
     function redrawList() {
       clear(list);
@@ -939,7 +942,7 @@
     form.appendChild(nameInput);
     form.appendChild(el("div", { class: "label" }, "Prezzo"));
     form.appendChild(priceInput);
-    form.appendChild(el("div", { class: "label" }, "Immagine (testo)"));
+    form.appendChild(el("div", { class: "label" }, "Immagine"));
     form.appendChild(imageInput);
     form.appendChild(buttons);
 
@@ -973,7 +976,7 @@
     const form = el("div", { class: "mgr-form" });
 
     const nameInput = el("input", { class: "input", placeholder: "Nome ricetta" });
-    const imageInput = el("input", { class: "input", placeholder: "Immagine (path es: images/ricette/x.png)" });
+    const imageInput = el("input", { class: "input", placeholder: "Immagine (es: images/ricetta.png)" });
     const ingredientsInput = el("textarea", { class: "input", placeholder: "Ingredienti" });
     const procedureInput = el("textarea", { class: "input", placeholder: "Procedimento" });
 
@@ -1074,7 +1077,7 @@
 
     form.appendChild(el("div", { class: "label" }, "Nome"));
     form.appendChild(nameInput);
-    form.appendChild(el("div", { class: "label" }, "Immagine (testo)"));
+    form.appendChild(el("div", { class: "label" }, "Immagine"));
     form.appendChild(imageInput);
     form.appendChild(el("div", { class: "label" }, "Ingredienti"));
     form.appendChild(ingredientsInput);
@@ -1097,7 +1100,7 @@
       "div",
       { class: "modal-header" },
       el("div", { class: "modal-title" }, title),
-      el("button", { class: "btn btn-ghost btn-square", onclick: () => closeModal(modal) }, "×")
+      el("button", { class: "btn btn-ghost btn-square", type: "button", onclick: () => closeModal(modal) }, "×")
     );
 
     box.appendChild(header);
@@ -1122,12 +1125,33 @@
         --btn:#151515; --btn2:#1f1f1f;
       }
       *{ box-sizing:border-box; }
-      body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:#fff; }
+      body{
+        margin:0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color:#fff;
+
+        /* fallback se l'immagine non carica */
+        background-color: var(--bg);
+
+        /* sfondo immagine (tutte le schermate) */
+        background-image: url("assets/home_bg.png");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+      }
+      body::before{
+        content:"";
+        position:fixed;
+        inset:0;
+        background: rgba(0,0,0,.45); /* regola intensità */
+        pointer-events:none;
+        z-index:-1;
+      }
+
       .shell{ min-height:100vh; display:flex; flex-direction:column; }
 
-      /* TOP + QUICKBAR WRAP */
       .topwrap{ position:sticky; top:0; z-index:6; }
-
       .topbar{
         position:sticky; top:0; z-index:5;
         display:flex; gap:10px; align-items:center;
@@ -1137,34 +1161,19 @@
         backdrop-filter: blur(8px);
       }
 
-      /* QUICK CART BAR (solo se carrello non vuoto) */
       .quickbar{
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:10px;
-        padding:8px 12px;
-        background:var(--gold);
-        color:var(--bg);
+        display:flex; align-items:center; justify-content:space-between; gap:10px;
+        padding:8px 12px; background:var(--gold); color:var(--bg);
         border-bottom:1px solid rgba(0,0,0,.25);
       }
       .quickbar-total{
-        font-weight:1000;
-        font-size:13px;
-        letter-spacing:.2px;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
+        font-weight:1000; font-size:13px; letter-spacing:.2px;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
       }
       .quickbar-btn{
-        border:0;
-        border-radius:10px;
-        padding:8px 12px;
-        font-weight:1000;
-        font-size:13px;
-        cursor:pointer;
-        background:rgba(0,0,0,.14);
-        color:var(--bg);
+        border:0; border-radius:10px; padding:8px 12px;
+        font-weight:1000; font-size:13px; cursor:pointer;
+        background:rgba(0,0,0,.14); color:var(--bg);
       }
       .quickbar-btn:hover{ background:rgba(0,0,0,.22); }
       .quickbar-btn:disabled{ opacity:.65; cursor:not-allowed; }
@@ -1187,14 +1196,13 @@
       .card-price{ margin-top:6px; text-align:center; font-weight:900; color:var(--gold); }
 
       .card-img{
-        width: 100%;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 12px;
-        margin-top: 10px;
-        border: 1px solid var(--line);
+        width:100%;
+        height:120px;
+        object-fit:cover;
+        border-radius:12px;
+        margin-top:10px;
+        border:1px solid var(--line);
         background:#0e0e0e;
-        display:block;
       }
 
       .badge{ margin-top:10px; text-align:center; font-weight:900; color:var(--gold); min-height:18px; }
@@ -1284,6 +1292,7 @@
       .spacer{ flex:1; }
       textarea.input{ min-height:110px; resize:vertical; font-family:inherit; }
     `;
+
     const style = document.createElement("style");
     style.textContent = css;
     document.head.appendChild(style);
@@ -1383,3 +1392,4 @@
     render();
   })();
 })();
+
