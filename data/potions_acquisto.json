@@ -1,7 +1,7 @@
 {
   "currency": "€",
   "potions": [
-    { "id": "decotto", "name": "Decotto", "price": 28, "image": "" },
+    { "id": "decotto", "name": "Decotto", "price": 28, "image": "images\pozioni\decotto.png" },
     { "id": "tisana-vermisia", "name": "Tisana Di Vermisia", "price": 23, "image": "" },
     { "id": "ampliorespiro-piccola", "name": "Ampliorespiro Piccola", "price": 35, "image": "" },
     { "id": "distillato-fiacco", "name": "Distillato Fiacco", "price": 28, "image": "" },
@@ -17,7 +17,7 @@
     { "id": "tisana-olmo", "name": "Tisana Dell'Olmo", "price": 34, "image": "" },
     { "id": "infuso-protettivo-piccolo", "name": "Infuso Protettivo Piccolo", "price": 47, "image": "" },
     { "id": "infuso-protettivo-medio", "name": "Infuso Protettivo Medio", "price": 79, "image": "" },
-    { "id": "soluzione-corroborante-piccola", "name": "Soluzione Corroborante Piccola", "price": 72, "image": "" },
+    { "id": "soluzione-corroborante-piccola", "name": "Soluzione Corroborante Piccola", "price": 72, "image": "images\pozioni\corroborantePicc.png" },
     { "id": "siero-rugiada", "name": "Siero Rugiada", "price": 42, "image": "" },
     { "id": "siero-crescita-celestiale", "name": "Siero Crescita Celestiale", "price": 42, "image": "" },
     { "id": "intruglio-sfocato", "name": "Intruglio Sfocato", "price": 42, "image": "" },
@@ -27,4 +27,5 @@
     { "id": "pozione-mana-base", "name": "Pozione Mana Base", "price": 61, "image": "" },
     { "id": "rimedio-luna-piena", "name": "Rimedio Di Luna Piena", "price": 61, "image": "" }
   ]
+
 }
