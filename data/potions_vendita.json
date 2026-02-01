@@ -1,6 +1,7 @@
 {
   "currency": "€",
   "potions": [
+    { "id": "acqua-distillata", "name": "Acqua Distillata", "price": 1, "image": "" },
     { "id": "decotto", "name": "Decotto", "price": 35, "image": "" },
     { "id": "tisana-vermisia", "name": "Tisana Di Vermisia", "price": 32, "image": "" },
     { "id": "ampliorespiro-piccola", "name": "Ampliorespiro Piccola", "price": 40, "image": "" },
@@ -27,4 +28,5 @@
     { "id": "rimedio-luna-piena", "name": "Rimedio Di Luna Piena", "price": 76, "image": "" },
     { "id": "essenza-arcanum", "name": "Essenza Arcanum", "price": 76, "image": "" }
   ]
+
 }
