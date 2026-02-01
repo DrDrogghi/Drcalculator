@@ -230,24 +230,6 @@
     const appShell = el("div", { class: "shell" }, renderTopBar(), renderBody());
     root.appendChild(appShell);
 
-    rightControls.appendChild(
-      el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false) }, "Ricarica")
-    );
-
-    rightControls.appendChild(
-      el(
-        "button",
-        {
-          class: "btn btn-ghost",
-          onclick: () => forceReloadFromDataFolder(),
-          title: "Ricarica prezzi e ricette dai file online",
-        },
-        "Ricarica da /data"
-      )
-    );
-
-
-
     const overlay = el("div", {
       class: `overlay ${state.drawerOpen ? "open" : ""}`,
       onclick: () => {
@@ -290,8 +272,26 @@
     const rightControls = el("div", { class: "top-right" });
 
     if (state.mode === "buy" || state.mode === "sell") {
-      rightControls.appendChild(el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false), type: "button" }, "Ricarica"));
-      rightControls.appendChild(el("button", { class: "btn btn-gold", onclick: () => openManagePotions(), type: "button" }, "Gestisci pozioni"));
+      rightControls.appendChild(
+        el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false), type: "button" }, "Ricarica")
+      );
+
+      rightControls.appendChild(
+        el(
+          "button",
+          {
+            class: "btn btn-ghost",
+            onclick: () => forceReloadFromDataFolder(),
+            title: "Ricarica prezzi e ricette dai file online",
+            type: "button",
+          },
+          "Ricarica da /data"
+        )
+      );
+
+      rightControls.appendChild(
+        el("button", { class: "btn btn-gold", onclick: () => openManagePotions(), type: "button" }, "Gestisci pozioni")
+      );
       rightControls.appendChild(
         el("button", { class: "btn btn-ghost btn-square", onclick: () => toggleDrawer(true), title: "Carrello", type: "button" }, "☰")
       );
@@ -312,7 +312,10 @@
           el("span", {}, "Selezione multipla")
         )
       );
-      rightControls.appendChild(el("button", { class: "btn btn-gold", onclick: () => openManageRecipes(), type: "button" }, "Gestisci ricette"));
+
+      rightControls.appendChild(
+        el("button", { class: "btn btn-gold", onclick: () => openManageRecipes(), type: "button" }, "Gestisci ricette")
+      );
     }
 
     const top = el(
@@ -447,7 +450,11 @@
       "+"
     );
 
-    const cancelBtn = el("button", { class: "btn btn-ghost", type: "button", onclick: () => wrap.classList.remove("open") }, "✕");
+    const cancelBtn = el(
+      "button",
+      { class: "btn btn-ghost", type: "button", onclick: () => wrap.classList.remove("open") },
+      "✕"
+    );
 
     const okBtn = el(
       "button",
@@ -533,8 +540,7 @@
     return page;
   }
 
-  // --- PARTE 2/2 CONTINUA DA QUI ---
-    // -----------------------------
+  // -----------------------------
   // Drawer (Carrello + impostazioni + invio Discord)
   // -----------------------------
   function renderDrawer() {
@@ -566,7 +572,6 @@
     const list = el("div", { class: "cart-list" });
     const totalLine = el("div", { class: "total" }, "Totale: 0€");
 
-    // NB: qui NON possiamo usare sendBtn dentro l'onclick prima di dichiararlo
     const sendBtn = el("button", { class: "btn btn-gold", type: "button" }, "Invia su Discord (Embed)");
     sendBtn.addEventListener("click", () => sendToDiscord(sendBtn));
 
@@ -863,7 +868,13 @@
 
     function redrawList() {
       clear(list);
-      const header = el("div", { class: "mgr-row mgr-head" }, el("div", {}, "Nome"), el("div", {}, "Prezzo"), el("div", {}, "Immagine"));
+      const header = el(
+        "div",
+        { class: "mgr-row mgr-head" },
+        el("div", {}, "Nome"),
+        el("div", {}, "Prezzo"),
+        el("div", {}, "Immagine")
+      );
       list.appendChild(header);
 
       for (const p of potions.sort((a, b) => a.name.localeCompare(b.name, "it"))) {
@@ -973,16 +984,13 @@
     const data = clone(state.recipesData);
     const recipes = [...(data.recipes || [])].sort((a, b) => a.name.localeCompare(b.name, "it"));
 
-    const modal = createModal(
-      "Gestione Ricette",
-      renderRecipesManager(recipes, (updatedRecipes) => {
-        state.recipesData.recipes = updatedRecipes;
-        saveJSON(LS_KEYS.RECIPES, state.recipesData);
-        toast("Ricette salvate ✅", "ok");
-        closeModal(modal);
-        render();
-      })
-    );
+    const modal = createModal("Gestione Ricette", renderRecipesManager(recipes, (updatedRecipes) => {
+      state.recipesData.recipes = updatedRecipes;
+      saveJSON(LS_KEYS.RECIPES, state.recipesData);
+      toast("Ricette salvate ✅", "ok");
+      closeModal(modal);
+      render();
+    }));
 
     document.body.appendChild(modal);
   }
@@ -1413,11 +1421,8 @@
 
     const imported = await tryAutoImportFromDataFolder();
 
-    if (imported) {
-      toast("Dati ricaricati da /data ✅", "ok");
-    } else {
-      toast("Nessun dato trovato in /data", "error");
-    }
+    if (imported) toast("Dati ricaricati da /data ✅", "ok");
+    else toast("Nessun dato trovato in /data", "error");
 
     // ricarica lo stato corrente
     if (state.mode === "buy" || state.mode === "sell") {
@@ -1430,12 +1435,12 @@
     }
   }
 
-
+  // -----------------------------
   // Boot
+  // -----------------------------
   (async () => {
     const imported = await tryAutoImportFromDataFolder();
     if (imported) toast("Dati importati da /data ✅", "ok");
     render();
   })();
 })();
-
