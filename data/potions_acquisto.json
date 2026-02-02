@@ -26,10 +26,22 @@
     { "id": "siero-solarverde", "name": "Siero Solarverde", "price": 43, "image": "" },
     { "id": "balsamo-drago", "name": "Balsamo Del Drago", "price": 49, "image": "" },
     { "id": "pozione-mana-base", "name": "Pozione Mana Base", "price": 61, "image": "" },
-    { "id": "rimedio-luna-piena", "name": "Rimedio Di Luna Piena", "price": 61, "image": "" }
+    { "id": "rimedio-luna-piena", "name": "Rimedio Di Luna Piena", "price": 61, "image": "" },
+    { "id": "unguento-viridis", "name": "Unguento Viridis", "price": 175, "image": "" },
+    { "id": "crema-purifex", "name": "Crema Purifex", "price": 200, "image": "" },
+    { "id": "pomata-emostata", "name": "Pomata Emostata", "price": 165, "image": "" },
+    { "id": "balsamo-lividor", "name": "Balsamo Lividor", "price": 185, "image": "" },
+    { "id": "pomata", "name": "Pomata Ardilene", "price": 195, "image": "" },
+    { "id": "somni", "name": "Infuso Somni", "price": 190, "image": "" },
+    { "id": "calendora", "name": "Infuso Di Calendora", "price": 160, "image": "" },
+    { "id": "invisibilitab", "name": "Invisibiltà Base", "price": 250, "image": "" },
+    { "id": "esplosivab", "name": "Esplosiva Piccola", "price": 125, "image": "" },
+    { "id": "murtlap", "name": "Pomata Murtlap", "price": 175, "image": "" },
+    { "id": "calidi", "name": "Tisana Calidi", "price": 180, "image": "" }
   ]
 
 }
+
 
 
 
