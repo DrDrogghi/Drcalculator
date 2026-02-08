@@ -4,6 +4,14 @@
    - Carrello + invio embed via Discord Webhook
    - Salvataggio su localStorage (JSON)
    - Immagini: path testuale (mostrate se il file esiste)
+
+   ✅ UI richieste:
+   - SOLO "🔥 Più vendute" + "Tutte"
+   - Barra di ricerca (nome pozione) in alto (Acquista/Vendi)
+   - Quantità sempre visibile su ogni card (niente tap per aprire)
+   - +/- e input aggiornano subito il carrello
+   - ✅ FIX: la barra di ricerca NON perde il focus mentre scrivi
+   - ✅ Tolto il tasto "Ricarica" (resta solo "Ricarica da /data")
 */
 
 (() => {
@@ -18,11 +26,16 @@
     SETTINGS_BUY: "drcalc_settings_acquisto",
     SETTINGS_SELL: "drcalc_settings_vendita",
     RECIPES: "drcalc_ricette",
+
+    // stats per "più vendute" (separati per modalità)
+    STATS_BUY: "drcalc_stats_acquisto",
+    STATS_SELL: "drcalc_stats_vendita",
   };
 
   const DEFAULT_POTIONS = { currency: "€", potions: [] };
   const DEFAULT_SETTINGS = { webhook_url: "", last_actor: "" };
   const DEFAULT_RECIPES = { recipes: [] };
+  const DEFAULT_STATS = { byId: {} }; // { byId: { [potionId]: number } }
 
   // -----------------------------
   // Utils
@@ -51,12 +64,14 @@
     return Number.isFinite(n) ? n : fallback;
   };
 
-  // Converte path relativo in URL assoluto compatibile con GitHub Pages (anche se sei in /repo/)
+  const normalizeSearch = (s) => normalizeName(String(s || "")).toLowerCase();
+
+  // Converte path relativo in URL assoluto compatibile con GitHub Pages
   function resolveAsset(path) {
     const p = String(path || "").trim();
     if (!p) return "";
-    if (/^https?:\/\//i.test(p)) return p; // URL esterni ok
-    return new URL(p, document.baseURI).toString(); // relativo alla pagina corrente
+    if (/^https?:\/\//i.test(p)) return p;
+    return new URL(p, document.baseURI).toString();
   }
 
   // -----------------------------
@@ -125,6 +140,22 @@
     return data;
   }
 
+  function statsKeyForMode() {
+    return state.mode === "buy" ? LS_KEYS.STATS_BUY : LS_KEYS.STATS_SELL;
+  }
+
+  function loadStatsForMode() {
+    const key = statsKeyForMode();
+    const s = loadJSON(key, DEFAULT_STATS);
+    if (!s || typeof s !== "object") return clone(DEFAULT_STATS);
+    if (!s.byId || typeof s.byId !== "object") s.byId = {};
+    return s;
+  }
+
+  function saveStatsForMode(stats) {
+    saveJSON(statsKeyForMode(), stats);
+  }
+
   // -----------------------------
   // App State
   // -----------------------------
@@ -139,6 +170,13 @@
     recipeOpen: new Set(),
     multiSelect: false,
     drawerOpen: false,
+
+    // ricerca (solo buy/sell)
+    searchQuery: "",
+
+    // FIX focus ricerca
+    _restoreSearchFocus: false,
+    _restoreSearchCaret: 0,
   };
 
   // -----------------------------
@@ -241,6 +279,25 @@
     const drawer = renderDrawer();
     root.appendChild(overlay);
     root.appendChild(drawer);
+
+    // ✅ FIX: ripristina focus/caret della ricerca dopo il render
+    restoreSearchFocusIfNeeded();
+  }
+
+  function restoreSearchFocusIfNeeded() {
+    if (!(state.mode === "buy" || state.mode === "sell")) return;
+    if (!state._restoreSearchFocus) return;
+
+    state._restoreSearchFocus = false;
+
+    const input = document.querySelector(".search");
+    if (!input) return;
+
+    input.focus({ preventScroll: true });
+    try {
+      const pos = Math.min(input.value.length, Math.max(0, safeInt(state._restoreSearchCaret, input.value.length)));
+      input.setSelectionRange(pos, pos);
+    } catch {}
   }
 
   function renderTopBar() {
@@ -272,10 +329,9 @@
     const rightControls = el("div", { class: "top-right" });
 
     if (state.mode === "buy" || state.mode === "sell") {
-      rightControls.appendChild(
-        el("button", { class: "btn btn-ghost", onclick: () => reloadMode(false), type: "button" }, "Ricarica")
-      );
+      rightControls.appendChild(renderSearchBar());
 
+      // ✅ tolto "Ricarica" (rimane solo /data)
       rightControls.appendChild(
         el(
           "button",
@@ -292,6 +348,7 @@
       rightControls.appendChild(
         el("button", { class: "btn btn-gold", onclick: () => openManagePotions(), type: "button" }, "Gestisci pozioni")
       );
+
       rightControls.appendChild(
         el("button", { class: "btn btn-ghost btn-square", onclick: () => toggleDrawer(true), title: "Carrello", type: "button" }, "☰")
       );
@@ -330,6 +387,42 @@
     return el("div", { class: "topwrap" }, top, quick ? quick : null);
   }
 
+  function renderSearchBar() {
+    const input = el("input", {
+      class: "search",
+      type: "search",
+      placeholder: "Cerca pozione...",
+      value: state.searchQuery || "",
+      oninput: (e) => {
+        // ✅ salva caret per ripristino focus (fix “una lettera e perde selezione”)
+        state._restoreSearchFocus = true;
+        state._restoreSearchCaret = e.target.selectionStart ?? (e.target.value || "").length;
+
+        state.searchQuery = e.target.value || "";
+        render();
+      },
+    });
+
+    const clearBtn = el(
+      "button",
+      {
+        class: "btn btn-ghost btn-square",
+        type: "button",
+        title: "Svuota ricerca",
+        onclick: () => {
+          state._restoreSearchFocus = true;
+          state._restoreSearchCaret = 0;
+
+          state.searchQuery = "";
+          render();
+        },
+      },
+      "×"
+    );
+
+    return el("div", { class: "search-wrap" }, input, clearBtn);
+  }
+
   function renderBody() {
     if (state.mode === "home") return renderHome();
     if (state.mode === "recipes") return renderRecipes();
@@ -356,23 +449,73 @@
     );
   }
 
+  // -----------------------------
+  // Potions rendering: "Più vendute" + "Tutte" + ricerca
+  // -----------------------------
   function renderPotions() {
     const data = state.potionsData;
     const currency = data.currency || "€";
-    const potions = [...(data.potions || [])].sort((a, b) => a.name.localeCompare(b.name, "it"));
 
+    const allPotions = [...(data.potions || [])].sort((a, b) => a.name.localeCompare(b.name, "it"));
     const page = el("div", { class: "page" });
 
-    if (!potions.length) {
+    if (!allPotions.length) {
       page.appendChild(el("div", { class: "empty" }, "Nessuna pozione salvata. Premi “Gestisci pozioni” per aggiungerne."));
       return page;
     }
 
+    const q = normalizeSearch(state.searchQuery);
+    const matches = (p) => (!q ? true : normalizeSearch(p.name).includes(q));
+
+    const stats = loadStatsForMode();
+    const counts = stats.byId || {};
+    const top = allPotions
+      .map((p) => ({ p, n: safeInt(counts[p.id], 0) }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n || a.p.name.localeCompare(b.p.name, "it"))
+      .slice(0, 8)
+      .filter((x) => matches(x.p));
+
+    const allFiltered = allPotions.filter(matches);
+
+    if (q && !allFiltered.length) {
+      page.appendChild(el("div", { class: "empty" }, `Nessun risultato per: "${state.searchQuery}"`));
+      return page;
+    }
+
+    if (top.length) {
+      page.appendChild(
+        renderSectionHeader(
+          "🔥 Più vendute",
+          `Aggiornato quando invii un riepilogo (${state.mode === "buy" ? "acquisto" : "vendita"}).`
+        )
+      );
+      page.appendChild(renderPotionGrid(top.map((x) => x.p), currency, true, top.map((x) => x.n)));
+    }
+
+    page.appendChild(renderSectionHeader("Tutte"));
+    page.appendChild(renderPotionGrid(allFiltered, currency));
+
+    return page;
+  }
+
+  function renderSectionHeader(title, subtitle = "") {
+    return el(
+      "div",
+      { class: "section-head" },
+      el("div", { class: "section-title" }, title),
+      subtitle ? el("div", { class: "section-sub" }, subtitle) : null
+    );
+  }
+
+  function renderPotionGrid(potions, currency, showRankBadge = false, rankCounts = []) {
     const grid = el("div", { class: "grid" });
 
-    for (const p of potions) {
-      const qty = state.cart[p.id] || 0;
-      const qtyBadge = el("div", { class: "badge" }, qty > 0 ? `x${qty}` : "");
+    potions.forEach((p, idx) => {
+      const qty = safeInt(state.cart[p.id], 0);
+      const qtyBadge = el("div", { class: "badge" }, `Nel carrello: x${qty}`);
+
+      const rankBadge = showRankBadge ? el("div", { class: "rank" }, `Totale: ${safeInt(rankCounts[idx], 0)}`) : null;
 
       const imgNode = p.image
         ? el("img", {
@@ -386,42 +529,52 @@
           })
         : null;
 
-      const stepper = renderQtyEditor(p.id);
+      const stepper = renderQtyEditorAlwaysOpen(p.id);
 
       const card = el(
         "div",
-        {
-          class: "card",
-          onclick: (e) => {
-            if (e.target.closest(".qty-editor")) return;
-            stepper.classList.toggle("open");
-          },
-        },
+        { class: "card" },
         el("div", { class: "card-title" }, p.name),
         el("div", { class: "card-price" }, `${p.price}${currency}`),
         imgNode,
+        rankBadge,
         qtyBadge,
         stepper
       );
 
       grid.appendChild(card);
-    }
+    });
 
-    page.appendChild(grid);
-    return page;
+    return grid;
   }
 
-  function renderQtyEditor(potionId) {
-    const wrap = el("div", { class: "qty-editor" });
+  function renderQtyEditorAlwaysOpen(potionId) {
+    const wrap = el("div", { class: "qty-editor open" });
+
+    const applyQty = (n) => {
+      const qty = Math.max(0, Math.min(9999, safeInt(n, 0)));
+      if (qty <= 0) delete state.cart[potionId];
+      else state.cart[potionId] = qty;
+
+      refreshDrawerTotals();
+      render();
+    };
 
     const input = el("input", {
       class: "qty-input",
       inputmode: "numeric",
-      value: String(state.cart[potionId] || 1),
+      value: String(safeInt(state.cart[potionId], 0)),
       oninput: (e) => {
         const v = e.target.value.replace(/[^\d]/g, "");
         e.target.value = v;
       },
+      onkeydown: (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          applyQty(e.target.value);
+        }
+      },
+      onblur: (e) => applyQty(e.target.value),
     });
 
     const minusBtn = el(
@@ -429,10 +582,7 @@
       {
         class: "btn btn-ghost",
         type: "button",
-        onclick: () => {
-          const n = Math.max(0, safeInt(input.value, 0) - 1);
-          input.value = String(n);
-        },
+        onclick: () => applyQty(safeInt(state.cart[potionId], 0) - 1),
       },
       "−"
     );
@@ -442,39 +592,24 @@
       {
         class: "btn btn-ghost",
         type: "button",
-        onclick: () => {
-          const n = Math.min(9999, safeInt(input.value, 0) + 1);
-          input.value = String(n);
-        },
+        onclick: () => applyQty(safeInt(state.cart[potionId], 0) + 1),
       },
       "+"
     );
 
-    const cancelBtn = el(
-      "button",
-      { class: "btn btn-ghost", type: "button", onclick: () => wrap.classList.remove("open") },
-      "✕"
-    );
-
-    const okBtn = el(
+    const zeroBtn = el(
       "button",
       {
-        class: "btn btn-gold",
+        class: "btn btn-ghost",
         type: "button",
-        onclick: () => {
-          const n = safeInt(input.value, 0);
-          if (n <= 0) delete state.cart[potionId];
-          else state.cart[potionId] = n;
-          wrap.classList.remove("open");
-          refreshDrawerTotals();
-          render();
-        },
+        onclick: () => applyQty(0),
+        title: "Rimuovi dal carrello",
       },
-      "✓"
+      "Svuota"
     );
 
     wrap.appendChild(el("div", { class: "qty-row" }, minusBtn, input, plusBtn));
-    wrap.appendChild(el("div", { class: "qty-actions" }, cancelBtn, okBtn));
+    wrap.appendChild(el("div", { class: "qty-actions" }, zeroBtn));
     return wrap;
   }
 
@@ -541,7 +676,7 @@
   }
 
   // -----------------------------
-  // Drawer (Carrello + impostazioni + invio Discord)
+  // Drawer
   // -----------------------------
   function renderDrawer() {
     const drawer = el("div", { class: `drawer ${state.drawerOpen ? "open" : ""}` });
@@ -652,6 +787,7 @@
     state.cart = {};
     state.recipeOpen.clear();
     state.multiSelect = false;
+    state.searchQuery = "";
     render();
   }
 
@@ -660,16 +796,19 @@
       state.mode = "buy";
       state.potionsKey = LS_KEYS.POTIONS_BUY;
       state.settingsKey = LS_KEYS.SETTINGS_BUY;
+      state.searchQuery = "";
       reloadMode(true);
     } else if (mode === "sell") {
       state.mode = "sell";
       state.potionsKey = LS_KEYS.POTIONS_SELL;
       state.settingsKey = LS_KEYS.SETTINGS_SELL;
+      state.searchQuery = "";
       reloadMode(true);
     } else if (mode === "recipes") {
       state.mode = "recipes";
       state.drawerOpen = false;
       state.cart = {};
+      state.searchQuery = "";
       state.recipesData = loadRecipes();
       state.recipeOpen.clear();
       render();
@@ -708,7 +847,7 @@
   }
 
   // -----------------------------
-  // Discord webhook sending
+  // Discord webhook sending + aggiorna "più vendute"
   // -----------------------------
   async function sendToDiscord(btn) {
     if (!(state.mode === "buy" || state.mode === "sell")) return;
@@ -740,6 +879,8 @@
         }
       }
 
+      bumpTopSoldStatsFromCart();
+
       toast("Riepilogo inviato su Discord ✅", "ok");
       state.cart = {};
       state.drawerOpen = false;
@@ -749,6 +890,19 @@
       btn.disabled = false;
       btn.textContent = old;
     }
+  }
+
+  function bumpTopSoldStatsFromCart() {
+    const stats = loadStatsForMode();
+    if (!stats.byId) stats.byId = {};
+
+    for (const [pid, qtyRaw] of Object.entries(state.cart || {})) {
+      const qty = safeInt(qtyRaw, 0);
+      if (qty <= 0) continue;
+      stats.byId[pid] = safeInt(stats.byId[pid], 0) + qty;
+    }
+
+    saveStatsForMode(stats);
   }
 
   function buildEmbedPayloads() {
@@ -797,7 +951,6 @@
       });
     }
 
-    // chunk max 20 fields
     const chunks = [];
     for (let i = 0; i < fields.length; i += 20) chunks.push(fields.slice(i, i + 20));
 
@@ -976,7 +1129,6 @@
     form.appendChild(buttons);
 
     redrawList();
-
     return el("div", { class: "mgr" }, list, form);
   }
 
@@ -1111,7 +1263,7 @@
     form.appendChild(procedureInput);
     form.appendChild(buttons);
 
-    redrawList();
+    clearForm();
     return el("div", { class: "mgr" }, list, form);
   }
 
@@ -1155,11 +1307,7 @@
         margin:0;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         color:#fff;
-
-        /* fallback se l'immagine non carica */
         background-color: var(--bg);
-
-        /* sfondo immagine (tutte le schermate) */
         background-image: url("assets/home_bg.png");
         background-size: cover;
         background-position: center;
@@ -1170,7 +1318,7 @@
         content:"";
         position:fixed;
         inset:0;
-        background: rgba(0,0,0,.45); /* regola intensità */
+        background: rgba(0,0,0,.45);
         pointer-events:none;
         z-index:-1;
       }
@@ -1185,6 +1333,28 @@
         background:rgba(11,11,11,.92);
         border-bottom:1px solid var(--line);
         backdrop-filter: blur(8px);
+      }
+
+      .top-left, .top-right{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+      .top-center{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+      .brand{ font-weight:800; color:var(--gold); font-size:18px; letter-spacing:.3px; }
+      .mode{ font-size:12px; color:var(--muted); font-weight:700; }
+
+      .search-wrap{
+        display:flex; align-items:center; gap:8px;
+        background:var(--btn);
+        border-radius:12px;
+        padding:8px 10px;
+      }
+      .search{
+        width:min(260px, 40vw);
+        border:1px solid var(--line);
+        background:#0e0e0e;
+        color:#fff;
+        border-radius:10px;
+        padding:8px 10px;
+        font-weight:900;
+        outline:none;
       }
 
       .quickbar{
@@ -1204,12 +1374,18 @@
       .quickbar-btn:hover{ background:rgba(0,0,0,.22); }
       .quickbar-btn:disabled{ opacity:.65; cursor:not-allowed; }
 
-      .top-left, .top-right{ display:flex; gap:10px; align-items:center; }
-      .top-center{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
-      .brand{ font-weight:800; color:var(--gold); font-size:18px; letter-spacing:.3px; }
-      .mode{ font-size:12px; color:var(--muted); font-weight:700; }
-
       .page{ padding:14px; }
+
+      .section-head{
+        margin:10px 2px 10px;
+        padding:10px 12px;
+        border:1px solid var(--line);
+        background:rgba(0,0,0,.28);
+        border-radius:14px;
+      }
+      .section-title{ font-weight:1000; color:var(--gold); letter-spacing:.2px; }
+      .section-sub{ margin-top:4px; color:var(--muted); font-weight:800; font-size:12px; }
+
       .home{ flex:1; display:flex; align-items:center; justify-content:center; padding:18px; }
       .home-card{ width:min(560px, 100%); background:var(--card); border:2px solid var(--gold); border-radius:16px; padding:18px; }
       .home-title{ color:var(--muted); font-weight:700; margin-bottom:14px; text-align:center; }
@@ -1217,7 +1393,8 @@
       @media (max-width:560px){ .home-actions{ grid-template-columns:1fr; } }
 
       .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; }
-      .card{ background:var(--card); border:2px solid var(--gold); border-radius:16px; padding:14px; cursor:pointer; }
+
+      .card{ background:var(--card); border:2px solid var(--gold); border-radius:16px; padding:14px; }
       .card-title{ font-weight:800; font-size:15px; text-align:center; }
       .card-price{ margin-top:6px; text-align:center; font-weight:900; color:var(--gold); }
 
@@ -1231,16 +1408,42 @@
         background:#0e0e0e;
       }
 
-      .badge{ margin-top:10px; text-align:center; font-weight:900; color:var(--gold); min-height:18px; }
+      .rank{
+        margin-top:10px;
+        text-align:center;
+        font-weight:1000;
+        font-size:12px;
+        color:#0b0b0b;
+        background:rgba(212,175,55,.95);
+        border-radius:10px;
+        padding:6px 10px;
+      }
 
-      .qty-editor{ margin-top:10px; display:none; border-top:1px solid var(--line); padding-top:10px; }
-      .qty-editor.open{ display:block; }
+      .badge{
+        margin-top:10px;
+        text-align:center;
+        font-weight:900;
+        color:var(--muted);
+        font-size:12px;
+        min-height:18px;
+      }
+
+      .qty-editor{ margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
       .qty-row{ display:flex; gap:10px; align-items:center; justify-content:center; }
-      .qty-input{ width:90px; text-align:center; font-size:18px; font-weight:900; background:#0f0f0f; color:#fff; border:1px solid var(--line); border-radius:12px; padding:10px; }
-      .qty-actions{ display:flex; gap:10px; margin-top:10px; }
+      .qty-input{
+        width:90px;
+        text-align:center;
+        font-size:18px;
+        font-weight:900;
+        background:#0f0f0f;
+        color:#fff;
+        border:1px solid var(--line);
+        border-radius:12px;
+        padding:10px;
+      }
+      .qty-actions{ display:flex; justify-content:center; gap:10px; margin-top:10px; }
 
       .recipe-details{ margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
-      .section-title{ color:var(--gold); font-weight:900; font-size:13px; margin-top:8px;}
       .section-text{ color:#eaeaea; font-size:13px; white-space:pre-wrap; }
 
       .btn{ border:0; border-radius:12px; padding:10px 12px; font-weight:800; cursor:pointer; background:var(--btn); color:var(--gold); }
@@ -1307,6 +1510,7 @@
       @media (max-width:860px){ .mgr{ grid-template-columns:1fr; } }
       .mgr-list{ border:1px solid var(--line); border-radius:14px; overflow:hidden; }
       .mgr-form{ border:1px solid var(--line); border-radius:14px; padding:12px; background:var(--card); }
+
       .mgr-row{ width:100%; display:grid; grid-template-columns: 1fr 90px 1fr; gap:10px; padding:10px; border:0; background:#0e0e0e; color:#fff; text-align:left; }
       .mgr-row + .mgr-row{ border-top:1px solid var(--line); }
       .mgr-head{ background:#0b0b0b; color:var(--muted); font-weight:900; }
@@ -1314,6 +1518,7 @@
       .mgr-col{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
       .mgr-right{ text-align:right; font-weight:900; color:var(--gold); }
       .mgr-muted{ color:var(--muted); }
+
       .mgr-buttons{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
       .spacer{ flex:1; }
       textarea.input{ min-height:110px; resize:vertical; font-family:inherit; }
@@ -1412,7 +1617,6 @@
   }
 
   async function forceReloadFromDataFolder() {
-    // cancella tutto
     localStorage.removeItem(LS_KEYS.POTIONS_BUY);
     localStorage.removeItem(LS_KEYS.POTIONS_SELL);
     localStorage.removeItem(LS_KEYS.SETTINGS_BUY);
@@ -1424,7 +1628,6 @@
     if (imported) toast("Dati ricaricati da /data ✅", "ok");
     else toast("Nessun dato trovato in /data", "error");
 
-    // ricarica lo stato corrente
     if (state.mode === "buy" || state.mode === "sell") {
       reloadMode(true);
     } else if (state.mode === "recipes") {
