@@ -37,10 +37,19 @@
     { "id": "invisibilitab", "name": "Invisibiltà Base", "price": 250, "image": "" },
     { "id": "esplosivab", "name": "Esplosiva Piccola", "price": 125, "image": "" },
     { "id": "murtlap", "name": "Pomata Murtlap", "price": 175, "image": "" },
-    { "id": "calidi", "name": "Tisana Calidi", "price": 180, "image": "" }
+    { "id": "calidi", "name": "Tisana Calidi", "price": 180, "image": "" },
+    { "id": "esplosivamed", "name": "Esplosiva Media", "price": 210, "image": "" },
+    { "id": "corroborantemed", "name": "Corroborante Media", "price": 500, "image": "" },
+    { "id": "ampliorespirome", "name": "Ampliorespiro Media", "price": 255, "image": "" },
+    { "id": "decorvit", "name": "Decor Vitalis", "price": 180, "image": "" },
+     { "id": "leniera", "name": "Gocce Di Leniera", "price": 170, "image": "" },
+    { "id": "Quieti", "name": "Infuso Animi Quieti", "price": 161, "image": "" },
+    { "id": "rosis", "name": "Elisir Rosis", "price": 170, "image": "" },
+    { "id": "tenebre", "name": "Te Delle Tenebre", "price": 180, "image": "" }
   ]
 
 }
+
 
 
 
