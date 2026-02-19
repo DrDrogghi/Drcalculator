@@ -33,7 +33,7 @@
     { "id": "balsamo-lividor", "name": "Balsamo Lividor", "price": 185, "image": "" },
     { "id": "pomata", "name": "Pomata Ardilene", "price": 195, "image": "" },
     { "id": "somni", "name": "Infuso Somni", "price": 190, "image": "" },
-    { "id": "calendora", "name": "Infuso Di Calendora", "price": 160, "image": "" },
+    { "id": "calendora", "name": "Infuso Di Calendora", "price": 170, "image": "" },
     { "id": "invisibilitab", "name": "Invisibiltà Base", "price": 250, "image": "" },
     { "id": "esplosivab", "name": "Esplosiva Piccola", "price": 125, "image": "" },
     { "id": "murtlap", "name": "Pomata Murtlap", "price": 175, "image": "" },
@@ -45,10 +45,17 @@
      { "id": "leniera", "name": "Gocce Di Leniera", "price": 170, "image": "" },
     { "id": "Quieti", "name": "Infuso Animi Quieti", "price": 161, "image": "" },
     { "id": "rosis", "name": "Elisir Rosis", "price": 170, "image": "" },
-    { "id": "tenebre", "name": "Te Delle Tenebre", "price": 180, "image": "" }
+    { "id": "tenebre", "name": "The Delle Tenebre", "price": 200, "image": "" },
+     { "id": "manaava", "name": "Mana Avanzato", "price": 200, "image": "" },
+    { "id": "corrogrand", "name": "Corroborante Grande", "price": 300, "image": "" },
+     { "id": "curagrande", "name": "Cura Ferita Grande", "price": 250, "image": "" },
+    { "id": "esplogrand", "name": "Esplosiva Grande", "price": 280, "image": "" },
+     { "id": "gocce", "name": "Gocce Di Lenyra", "price": 150, "image": "" },
+    { "id": "protegrande", "name": "Infuso Protettivo Grande", "price": 250, "image": "" }
   ]
 
 }
+
 
 
 
