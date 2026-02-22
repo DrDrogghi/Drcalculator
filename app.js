@@ -1,17 +1,13 @@
 /* DrCalculator Web App (PWA-ready) - app.js
    - Modalità: ACQUISTA / VENDI / RICETTE
-   - CRUD pozioni (acquisto/vendita) + CRUD ricette
    - Carrello + invio embed via Discord Webhook
    - Salvataggio su localStorage (JSON)
    - Immagini: path testuale (mostrate se il file esiste)
 
-   ✅ UI richieste:
-   - SOLO "🔥 Più vendute" + "Tutte"
-   - Barra di ricerca (nome pozione) in alto (Acquista/Vendi)
-   - Quantità sempre visibile su ogni card (niente tap per aprire)
-   - +/- e input aggiornano subito il carrello
-   - ✅ FIX: la barra di ricerca NON perde il focus mentre scrivi
-   - ✅ Tolto il tasto "Ricarica" (resta solo "Ricarica da /data")
+   ✅ Modifiche richieste:
+   - Tolto tasto "Ricarica da /data"
+   - Tolto tasto "Gestisci pozioni"
+   - ✅ Auto-sync: ad ogni apertura/refresh pagina ricarica SEMPRE i file da /data e aggiorna localStorage
 */
 
 (() => {
@@ -331,26 +327,13 @@
     if (state.mode === "buy" || state.mode === "sell") {
       rightControls.appendChild(renderSearchBar());
 
-      // ✅ tolto "Ricarica" (rimane solo /data)
+      // ✅ RIMOSSI: "Ricarica da /data" e "Gestisci pozioni"
       rightControls.appendChild(
         el(
           "button",
-          {
-            class: "btn btn-ghost",
-            onclick: () => forceReloadFromDataFolder(),
-            title: "Ricarica prezzi e ricette dai file online",
-            type: "button",
-          },
-          "Ricarica da /data"
+          { class: "btn btn-ghost btn-square", onclick: () => toggleDrawer(true), title: "Carrello", type: "button" },
+          "☰"
         )
-      );
-
-      rightControls.appendChild(
-        el("button", { class: "btn btn-gold", onclick: () => openManagePotions(), type: "button" }, "Gestisci pozioni")
-      );
-
-      rightControls.appendChild(
-        el("button", { class: "btn btn-ghost btn-square", onclick: () => toggleDrawer(true), title: "Carrello", type: "button" }, "☰")
       );
     } else if (state.mode === "recipes") {
       rightControls.appendChild(
@@ -370,6 +353,7 @@
         )
       );
 
+      // (lasciato com’era: se vuoi togliere anche questo bottone dimmelo)
       rightControls.appendChild(
         el("button", { class: "btn btn-gold", onclick: () => openManageRecipes(), type: "button" }, "Gestisci ricette")
       );
@@ -394,7 +378,6 @@
       placeholder: "Cerca pozione...",
       value: state.searchQuery || "",
       oninput: (e) => {
-        // ✅ salva caret per ripristino focus (fix “una lettera e perde selezione”)
         state._restoreSearchFocus = true;
         state._restoreSearchCaret = e.target.selectionStart ?? (e.target.value || "").length;
 
@@ -460,7 +443,7 @@
     const page = el("div", { class: "page" });
 
     if (!allPotions.length) {
-      page.appendChild(el("div", { class: "empty" }, "Nessuna pozione salvata. Premi “Gestisci pozioni” per aggiungerne."));
+      page.appendChild(el("div", { class: "empty" }, "Nessuna pozione salvata."));
       return page;
     }
 
@@ -618,7 +601,7 @@
     const page = el("div", { class: "page" });
 
     if (!recipes.length) {
-      page.appendChild(el("div", { class: "empty" }, "Nessuna ricetta salvata. Premi “Gestisci ricette” per aggiungerne."));
+      page.appendChild(el("div", { class: "empty" }, "Nessuna ricetta salvata."));
       return page;
     }
 
@@ -982,156 +965,8 @@
   }
 
   // -----------------------------
-  // Manage screens (modals)
+  // Ricette manager (rimasto com’era)
   // -----------------------------
-  function openManagePotions() {
-    const data = clone(state.potionsData);
-    const currency = data.currency || "€";
-    const potions = [...(data.potions || [])].sort((a, b) => a.name.localeCompare(b.name, "it"));
-
-    const modal = createModal(
-      `Gestione Pozioni (${state.mode === "buy" ? "ACQUISTA" : "VENDI"})`,
-      renderPotionsManager(potions, currency, (updatedPotions, updatedCurrency) => {
-        state.potionsData.currency = (updatedCurrency || "€").trim() || "€";
-        state.potionsData.potions = updatedPotions;
-
-        saveJSON(state.potionsKey, state.potionsData);
-
-        refreshDrawerTotals();
-        toast("Pozioni salvate ✅", "ok");
-        closeModal(modal);
-        render();
-      })
-    );
-
-    document.body.appendChild(modal);
-  }
-
-  function renderPotionsManager(potions, currency, onSaveAll) {
-    let selectedId = null;
-
-    const list = el("div", { class: "mgr-list" });
-    const form = el("div", { class: "mgr-form" });
-
-    const currencyInput = el("input", { class: "input", value: currency, maxlength: "3" });
-
-    const nameInput = el("input", { class: "input", placeholder: "Nome" });
-    const priceInput = el("input", { class: "input", placeholder: "Prezzo (intero)", inputmode: "numeric" });
-    const imageInput = el("input", { class: "input", placeholder: "Immagine (es: images/pozione.png)" });
-
-    function redrawList() {
-      clear(list);
-      const header = el(
-        "div",
-        { class: "mgr-row mgr-head" },
-        el("div", {}, "Nome"),
-        el("div", {}, "Prezzo"),
-        el("div", {}, "Immagine")
-      );
-      list.appendChild(header);
-
-      for (const p of potions.sort((a, b) => a.name.localeCompare(b.name, "it"))) {
-        const row = el(
-          "button",
-          {
-            class: `mgr-row ${selectedId === p.id ? "active" : ""}`,
-            type: "button",
-            onclick: () => {
-              selectedId = p.id;
-              nameInput.value = p.name;
-              priceInput.value = String(p.price);
-              imageInput.value = p.image || "";
-              redrawList();
-            },
-          },
-          el("div", { class: "mgr-col" }, p.name),
-          el("div", { class: "mgr-col mgr-right" }, String(p.price)),
-          el("div", { class: "mgr-col mgr-muted" }, p.image || "—")
-        );
-        list.appendChild(row);
-      }
-    }
-
-    function clearForm() {
-      selectedId = null;
-      nameInput.value = "";
-      priceInput.value = "";
-      imageInput.value = "";
-      redrawList();
-    }
-
-    function saveOne() {
-      const name = normalizeName(nameInput.value);
-      const price = safeInt(priceInput.value, -1);
-      const image = (imageInput.value || "").trim();
-
-      if (!name) return toast("Nome non valido.", "error");
-      if (!(price > 0)) return toast("Prezzo non valido (deve essere > 0).", "error");
-
-      if (selectedId) {
-        const idx = potions.findIndex((x) => x.id === selectedId);
-        if (idx >= 0) potions[idx] = { ...potions[idx], name, price, image };
-      } else {
-        potions.push({ id: uid(), name, price, image });
-      }
-      toast("Salvato.", "ok");
-      redrawList();
-    }
-
-    function deleteOne() {
-      if (!selectedId) return toast("Seleziona una pozione.", "error");
-      const p = potions.find((x) => x.id === selectedId);
-      if (!p) return;
-      if (!confirmBox(`Eliminare '${p.name}'?`)) return;
-      const idx = potions.findIndex((x) => x.id === selectedId);
-      if (idx >= 0) potions.splice(idx, 1);
-      clearForm();
-    }
-
-    const buttons = el(
-      "div",
-      { class: "mgr-buttons" },
-      el("button", { class: "btn btn-ghost", type: "button", onclick: () => clearForm() }, "Nuova"),
-      el("button", { class: "btn btn-gold", type: "button", onclick: () => saveOne() }, "Salva"),
-      el("button", { class: "btn btn-ghost", type: "button", onclick: () => deleteOne() }, "Elimina"),
-      el("div", { class: "spacer" }),
-      el(
-        "button",
-        {
-          class: "btn btn-gold",
-          type: "button",
-          onclick: () => {
-            const cur = (currencyInput.value || "€").trim() || "€";
-            const cleaned = potions
-              .map((p) => ({
-                id: String(p.id || uid()),
-                name: normalizeName(p.name),
-                price: safeInt(p.price, 0),
-                image: (p.image || "").toString().trim(),
-              }))
-              .filter((p) => p.name && p.price > 0);
-
-            onSaveAll(cleaned, cur);
-          },
-        },
-        "Salva tutto"
-      )
-    );
-
-    form.appendChild(el("div", { class: "label" }, "Valuta"));
-    form.appendChild(currencyInput);
-    form.appendChild(el("div", { class: "label" }, "Nome"));
-    form.appendChild(nameInput);
-    form.appendChild(el("div", { class: "label" }, "Prezzo"));
-    form.appendChild(priceInput);
-    form.appendChild(el("div", { class: "label" }, "Immagine"));
-    form.appendChild(imageInput);
-    form.appendChild(buttons);
-
-    redrawList();
-    return el("div", { class: "mgr" }, list, form);
-  }
-
   function openManageRecipes() {
     const data = clone(state.recipesData);
     const recipes = [...(data.recipes || [])].sort((a, b) => a.name.localeCompare(b.name, "it"));
@@ -1530,20 +1365,9 @@
   }
 
   // -----------------------------
-  // Auto-import da /data (solo se LS vuoto)
+  // Sync automatico da /data (SEMPRE ad ogni apertura)
   // -----------------------------
-  async function tryAutoImportFromDataFolder() {
-    const buyRaw = localStorage.getItem(LS_KEYS.POTIONS_BUY);
-    const sellRaw = localStorage.getItem(LS_KEYS.POTIONS_SELL);
-    const recRaw = localStorage.getItem(LS_KEYS.RECIPES);
-
-    const hasSomething =
-      (buyRaw && JSON.parse(buyRaw || "{}")?.potions?.length) ||
-      (sellRaw && JSON.parse(sellRaw || "{}")?.potions?.length) ||
-      (recRaw && JSON.parse(recRaw || "{}")?.recipes?.length);
-
-    if (hasSomething) return false;
-
+  async function syncFromDataFolderAlways() {
     const files = [
       { url: "data/potions_acquisto.json", key: LS_KEYS.POTIONS_BUY, type: "potions" },
       { url: "data/potions_vendita.json", key: LS_KEYS.POTIONS_SELL, type: "potions" },
@@ -1556,6 +1380,7 @@
 
     for (const f of files) {
       try {
+        // cache: no-store per prendere sempre l’ultima versione
         const res = await fetch(f.url, { cache: "no-store" });
         if (!res.ok) continue;
         const json = await res.json();
@@ -1616,34 +1441,14 @@
     return importedAny;
   }
 
-  async function forceReloadFromDataFolder() {
-    localStorage.removeItem(LS_KEYS.POTIONS_BUY);
-    localStorage.removeItem(LS_KEYS.POTIONS_SELL);
-    localStorage.removeItem(LS_KEYS.SETTINGS_BUY);
-    localStorage.removeItem(LS_KEYS.SETTINGS_SELL);
-    localStorage.removeItem(LS_KEYS.RECIPES);
-
-    const imported = await tryAutoImportFromDataFolder();
-
-    if (imported) toast("Dati ricaricati da /data ✅", "ok");
-    else toast("Nessun dato trovato in /data", "error");
-
-    if (state.mode === "buy" || state.mode === "sell") {
-      reloadMode(true);
-    } else if (state.mode === "recipes") {
-      state.recipesData = loadRecipes();
-      render();
-    } else {
-      render();
-    }
-  }
-
   // -----------------------------
-  // Boot
+  // Boot (auto sync SEMPRE)
   // -----------------------------
   (async () => {
-    const imported = await tryAutoImportFromDataFolder();
-    if (imported) toast("Dati importati da /data ✅", "ok");
+    // 🔥 sempre sync da /data all’avvio
+    const imported = await syncFromDataFolderAlways();
+    if (imported) toast("Dati aggiornati automaticamente ✅", "ok");
+
     render();
   })();
 })();
