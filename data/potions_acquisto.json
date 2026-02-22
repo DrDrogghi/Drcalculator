@@ -183,8 +183,14 @@
     },
     {
       "id": "invisibilitab",
-      "name": "InvisibiltÃÂÃÂ Base",
+      "name": "InvisibiltÃÂÃÂÃÂÃÂ Base",
       "price": 250,
+      "image": ""
+    },
+    {
+      "id": "ciao",
+      "name": "Kungay",
+      "price": 2,
       "image": ""
     },
     {
