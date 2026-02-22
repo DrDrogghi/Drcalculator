@@ -183,7 +183,7 @@
     },
     {
       "id": "invisibilitab",
-      "name": "InvisibiltÃ Base",
+      "name": "InvisibiltÃÂ Base",
       "price": 250,
       "image": ""
     },
@@ -197,12 +197,6 @@
       "id": "manaava",
       "name": "Mana Avanzato",
       "price": 200,
-      "image": ""
-    },
-    {
-      "id": "giallo",
-      "name": "mike sei ( non lo dico )",
-      "price": 2000,
       "image": ""
     },
     {
