@@ -1372,8 +1372,6 @@
       { url: "data/potions_acquisto.json", key: LS_KEYS.POTIONS_BUY, type: "potions" },
       { url: "data/potions_vendita.json", key: LS_KEYS.POTIONS_SELL, type: "potions" },
       { url: "data/ricette.json", key: LS_KEYS.RECIPES, type: "recipes" },
-      { url: "data/settings_acquisto.json", key: LS_KEYS.SETTINGS_BUY, type: "settings" },
-      { url: "data/settings_vendita.json", key: LS_KEYS.SETTINGS_SELL, type: "settings" },
     ];
 
     let importedAny = false;
@@ -1424,15 +1422,6 @@
           importedAny = true;
         }
 
-        if (f.type === "settings") {
-          if (!json || typeof json !== "object") continue;
-          const cleaned = {
-            webhook_url: (json.webhook_url || "").toString(),
-            last_actor: (json.last_actor || "").toString(),
-          };
-          saveJSON(f.key, cleaned);
-          importedAny = true;
-        }
       } catch {
         // skip
       }
@@ -1452,3 +1441,4 @@
     render();
   })();
 })();
+
