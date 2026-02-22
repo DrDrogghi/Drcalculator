@@ -1,5 +1,5 @@
 {
-  "currency": "â¬",
+  "currency": "c",
   "potions": [
     {
       "id": "acqua-vitae",
@@ -183,8 +183,14 @@
     },
     {
       "id": "invisibilitab",
-      "name": "InvisibiltÃ Base",
+      "name": "InvisibiltÃ Base",
       "price": 250,
+      "image": ""
+    },
+    {
+      "id": "ciao",
+      "name": "mammapozzaprova",
+      "price": 200,
       "image": ""
     },
     {
