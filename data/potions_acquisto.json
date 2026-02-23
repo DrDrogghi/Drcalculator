@@ -38,6 +38,12 @@
       "image": ""
     },
     {
+      "id": "ciao",
+      "name": "bla bla",
+      "price": 200,
+      "image": ""
+    },
+    {
       "id": "corrogrand",
       "name": "Corroborante Grande",
       "price": 300,
@@ -183,7 +189,7 @@
     },
     {
       "id": "invisibilitab",
-      "name": "InvisibiltÃ Base",
+      "name": "InvisibiltÃÂ Base",
       "price": 250,
       "image": ""
     },
