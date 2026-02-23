@@ -183,7 +183,7 @@
     },
     {
       "id": "invisibilitab",
-      "name": "InvisibiltÃ Base",
+      "name": "InvisibiltÃ Base",
       "price": 250,
       "image": ""
     },
@@ -191,12 +191,6 @@
       "id": "manaava",
       "name": "Mana Avanzato",
       "price": 200,
-      "image": ""
-    },
-    {
-      "id": "lacioladefora",
-      "name": "Mao mao",
-      "price": 40,
       "image": ""
     },
     {
