@@ -306,6 +306,12 @@
       "name": "Unguento Viridis",
       "price": 175,
       "image": ""
+    },
+    {
+      "id": "Wrep",
+      "name": "Wrepolast",
+      "price": 2000,
+      "image": ""
     }
   ]
 }
